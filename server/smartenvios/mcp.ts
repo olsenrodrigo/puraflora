@@ -24,6 +24,8 @@ import {
   createOrder,
   generateLabel,
   track,
+  uploadNfe,
+  updateOrder,
 } from "./service";
 
 // carrega .env (não-fatal) se existir
@@ -39,7 +41,7 @@ function loadDotEnv() {
 }
 loadDotEnv();
 
-const cfg = loadConfig(process.env);
+let cfg = loadConfig(process.env);
 const ok = (data: unknown) => ({
   content: [{ type: "text" as const, text: JSON.stringify(data, null, 2) }],
 });
@@ -57,15 +59,73 @@ const volumeSchema = z.object({
 
 server.tool(
   "smartenvios_config",
-  "Mostra a configuração atual do conector (ambiente, modo mock e CEP de origem). Não expõe o token.",
+  "Mostra a configuração atual do conector (ambiente, modo do documento NF-e/DC, mock e CEP de origem). Não expõe o token.",
   {},
   async () =>
     ok({
       env: cfg.env,
       mock: cfg.mock,
       senderZip: cfg.sender.zipcode,
+      senderDoc: cfg.sender.document,
+      document: cfg.document,
       rules: cfg.rules,
     })
+);
+
+server.tool(
+  "smartenvios_set_document_mode",
+  "Configurador: define, nesta sessão, o modo do documento fiscal ('nfe' exige NF-e; 'dc' usa Declaração de Conteúdo) e o tipo de DANFE na etiqueta. Para persistir, ajuste DOCUMENT_MODE/LABEL_DOCUMENT_TYPE no .env.",
+  {
+    mode: z.enum(["nfe", "dc"]).optional(),
+    labelType: z
+      .enum(["label_integrated_danfe", "label_separate_danfe"])
+      .optional(),
+  },
+  async ({ mode, labelType }) => {
+    cfg = {
+      ...cfg,
+      document: {
+        mode: mode ?? cfg.document.mode,
+        labelType: labelType ?? cfg.document.labelType,
+      },
+    };
+    return ok({ document: cfg.document });
+  }
+);
+
+server.tool(
+  "smartenvios_nfe_upload",
+  "Vincula uma NF-e (XML) a um pedido existente. Envie o XML em base64 ou texto.",
+  {
+    freightOrderId: z.string().describe("UUID do pedido"),
+    xmlBase64: z.string().optional().describe("XML da NF-e em base64"),
+    xml: z.string().optional().describe("XML da NF-e como texto"),
+    filename: z.string().optional(),
+  },
+  async ({ freightOrderId, xmlBase64, xml, filename }) => {
+    const content = xmlBase64
+      ? Buffer.from(xmlBase64, "base64")
+      : (xml ?? "");
+    return ok(await uploadNfe(cfg, freightOrderId, content, filename));
+  }
+);
+
+server.tool(
+  "smartenvios_update_order",
+  "Atualiza um pedido (PATCH) — ex.: vincular a chave da NF-e (nfe_key) ou ajustar dados. identifier = UUID, tracking, número ou external_order_id.",
+  {
+    identifier: z.string(),
+    nfeKey: z.string().optional().describe("Chave da NF-e (44 dígitos)"),
+    patch: z
+      .record(z.any())
+      .optional()
+      .describe("Campos adicionais para atualizar"),
+  },
+  async ({ identifier, nfeKey, patch }) => {
+    const body: Record<string, unknown> = { ...(patch || {}) };
+    if (nfeKey) body.nfe_key = nfeKey;
+    return ok(await updateOrder(cfg, identifier, body));
+  }
 );
 
 server.tool(

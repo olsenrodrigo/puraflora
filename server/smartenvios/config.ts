@@ -25,6 +25,18 @@ export interface StoreRules {
   freeServices: string[];
 }
 
+export type DocumentMode = "nfe" | "dc";
+export type LabelDocumentType =
+  | "label_integrated_danfe"
+  | "label_separate_danfe";
+
+export interface DocumentConfig {
+  /** "nfe" = pedido exige NF-e (chave/XML) · "dc" = Declaração de Conteúdo. */
+  mode: DocumentMode;
+  /** Como a DANFE entra na etiqueta (quando há NF-e). */
+  labelType: LabelDocumentType;
+}
+
 export interface SmartEnviosConfig {
   token: string;
   env: SmartEnviosEnv;
@@ -33,6 +45,7 @@ export interface SmartEnviosConfig {
   mock: boolean;
   sender: SenderConfig;
   rules: StoreRules;
+  document: DocumentConfig;
 }
 
 const BASE_URLS: Record<SmartEnviosEnv, string> = {
@@ -77,6 +90,13 @@ export function loadConfig(
         .split(",")
         .map((s) => s.trim())
         .filter(Boolean),
+    },
+    document: {
+      mode: env.DOCUMENT_MODE === "nfe" ? "nfe" : "dc",
+      labelType:
+        env.LABEL_DOCUMENT_TYPE === "label_separate_danfe"
+          ? "label_separate_danfe"
+          : "label_integrated_danfe",
     },
   };
 }

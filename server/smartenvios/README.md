@@ -25,9 +25,20 @@ Veja `.env.example`. Principais:
 |----------|-----------|
 | `SMARTENVIOS_TOKEN` | Token do painel. **Vazio = modo mock** (cotações/etiquetas simuladas). |
 | `SMARTENVIOS_ENV` | `sandbox` (padrão) ou `production`. |
-| `SENDER_*` | Dados do remetente/origem (CEP, CNPJ, endereço). |
+| `SENDER_*` | Dados do remetente/origem (CEP, CNPJ, endereço, telefone, e-mail, complemento). |
 | `FREE_SHIPPING_ABOVE` | Frete grátis a partir deste subtotal (R$). |
 | `SHIPPING_DISCOUNT_PERCENT` | Desconto % no frete. |
+| `DOCUMENT_MODE` | `nfe` (pedido exige NF-e) ou `dc` (Declaração de Conteúdo). |
+| `LABEL_DOCUMENT_TYPE` | `label_integrated_danfe` (padrão) ou `label_separate_danfe`. |
+
+### Documento fiscal (NF-e × DC)
+
+Contas que **exigem NF-e** (`DOCUMENT_MODE=nfe`): crie o pedido com a **chave da NF-e**
+(`createOrder({ ..., nfeKey })`) ou anexe o XML depois (`uploadNfe(cfg, orderId, xml)`).
+A etiqueta sai com a **DANFE integrada**. Contas com Declaração de Conteúdo (`dc`) dispensam a NF-e.
+
+MCP tem o **configurador**: `smartenvios_set_document_mode`, `smartenvios_nfe_upload`,
+`smartenvios_update_order` (vincular `nfe_key`), além de `quote/create_order/generate_label/track`.
 
 ## Uso como módulo (checkout / webhook / admin)
 

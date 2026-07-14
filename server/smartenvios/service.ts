@@ -193,18 +193,45 @@ export async function generateLabel(
   if (input.orderIds?.length) body.order_ids = input.orderIds;
   else if (input.trackingCodes?.length) body.tracking_codes = input.trackingCodes;
   else if (input.nfeKeys?.length) body.nfe_keys = input.nfeKeys;
-  if (input.documentType) body.documentType = input.documentType;
+  // Com NF-e, a etiqueta sai com DANFE integrada por padrão (config).
+  const docType =
+    input.documentType ??
+    (cfg.document.mode === "nfe" ? cfg.document.labelType : undefined);
+  if (docType) body.documentType = docType;
   if (input.mergeLabels) body.merge_labels = true;
 
   const data = await client.request<any>("POST", "/labels", { body });
+
+  // A API real responde { results: [{ status, url, tickets: {...} }] };
+  // a spec documenta { url, tickets: [...] }. Suportamos os dois.
+  const mapTicket = (t: any) => ({
+    freightOrderId: t?.freight_order_id,
+    trackingCode: t?.tracking_code,
+    publicTracking: t?.public_tracking,
+    volumes: (t?.volumes || []).map((v: any) => ({ barcode: v.barcode })),
+  });
+
+  if (Array.isArray(data?.results)) {
+    const errs = data.results.filter((r: any) => r.status === "ERROR");
+    const oks = data.results.filter((r: any) => r.status !== "ERROR");
+    if (oks.length === 0 && errs.length) {
+      throw new SmartEnviosError(
+        422,
+        errs.map((e: any) => e.reason).filter(Boolean).join("; ") ||
+          "Falha ao gerar etiqueta",
+        data
+      );
+    }
+    return {
+      url: oks.find((r: any) => r.url)?.url,
+      tickets: oks.map((r: any) => mapTicket(r.tickets)),
+      raw: data,
+    };
+  }
+
   return {
     url: data?.url,
-    tickets: (data?.tickets || []).map((t: any) => ({
-      freightOrderId: t.freight_order_id,
-      trackingCode: t.tracking_code,
-      publicTracking: t.public_tracking,
-      volumes: (t.volumes || []).map((v: any) => ({ barcode: v.barcode })),
-    })),
+    tickets: (data?.tickets || []).map(mapTicket),
     raw: data,
   };
 }
@@ -226,6 +253,53 @@ export async function track(
     observation: e.observation,
     type: e.type,
   }));
+}
+
+// ─── NF-e: upload de XML a um pedido existente ──────────────────────────────
+export async function uploadNfe(
+  cfg: SmartEnviosConfig,
+  freightOrderId: string,
+  xml: string | Uint8Array,
+  filename = "nfe.xml"
+): Promise<{ message?: string; raw: unknown }> {
+  if (cfg.mock) return { message: "mock: NF-e vinculada", raw: { mock: true } };
+  if (!cfg.token) throw new SmartEnviosError(401, "SMARTENVIOS_TOKEN não configurado", null);
+  const url = new URL(cfg.baseUrl + "/nfe-upload");
+  url.searchParams.set("freight_order_id", freightOrderId);
+  const form = new FormData();
+  form.append("file", new Blob([xml], { type: "application/xml" }), filename);
+  const res = await fetch(url.toString(), {
+    method: "POST",
+    headers: { token: cfg.token },
+    body: form,
+  });
+  const text = await res.text();
+  let data: any = text;
+  try {
+    data = text ? JSON.parse(text) : null;
+  } catch {
+    /* texto cru */
+  }
+  if (!res.ok) {
+    const m = Array.isArray(data?.message) ? data.message.join("; ") : data?.message;
+    throw new SmartEnviosError(res.status, m || "Falha no upload da NF-e", data);
+  }
+  return { message: data?.result?.message ?? data?.message, raw: data };
+}
+
+// ─── Atualizar pedido (PATCH) — inclui vincular chave de NF-e ────────────────
+export async function updateOrder(
+  cfg: SmartEnviosConfig,
+  identifier: string,
+  patch: Record<string, unknown>
+): Promise<unknown> {
+  if (cfg.mock) return { mock: true, patch };
+  const client = new SmartEnviosClient(cfg);
+  return client.request(
+    "PATCH",
+    `/order/${encodeURIComponent(identifier)}`,
+    { body: patch }
+  );
 }
 
 // ─── Mocks (desenvolvimento sem token) ──────────────────────────────────────

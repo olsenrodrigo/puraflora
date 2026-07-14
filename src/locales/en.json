@@ -1,0 +1,236 @@
+{
+  "brand": {
+    "name": "PuraFlora",
+    "tagline": "Nature's purity, balance for your flora."
+  },
+  "nav": {
+    "home": "Home",
+    "store": "Store",
+    "benefits": "Benefits",
+    "categories": "Categories",
+    "philosophy": "Philosophy",
+    "contact": "Contact",
+    "cart": "Cart"
+  },
+  "common": {
+    "buy": "Buy",
+    "addToCart": "Add",
+    "added": "added to cart",
+    "viewProduct": "View product",
+    "viewAll": "View all",
+    "seeStore": "See full store",
+    "from": "from",
+    "outOfStock": "Sold out",
+    "freeShipping": "Free shipping",
+    "glutenFree": "Gluten free",
+    "natural": "Natural",
+    "new": "New",
+    "bestSeller": "Best seller",
+    "off": "OFF",
+    "loading": "Loading..."
+  },
+  "hero": {
+    "eyebrow": "Natural supplements & naturopathy",
+    "ctaExplore": "Explore the store",
+    "ctaStory": "Our philosophy",
+    "discover": "Discover",
+    "trust": {
+      "a": "Natural ingredients",
+      "b": "Gluten-free formulas",
+      "c": "Care from the inside out"
+    }
+  },
+  "marquee": [
+    "Naturally sourced ingredients",
+    "Gluten-free formulas",
+    "Science in service of nature",
+    "Integrative care",
+    "Made for your routine",
+    "Gut flora balance"
+  ],
+  "value": {
+    "eyebrow": "Why PuraFlora",
+    "title": "Nature with purpose, science with care",
+    "subtitle": "We select natural actives and balanced formulas to support your body at every stage — with transparency, purity and respect for your own pace.",
+    "items": [
+      {
+        "title": "Purity in every formula",
+        "desc": "Naturally sourced actives, nothing in excess. Just what your wellbeing needs, the way nature intended."
+      },
+      {
+        "title": "Flora in balance",
+        "desc": "From the gut to immunity: we care for the foundation that supports your energy, mood and vitality."
+      },
+      {
+        "title": "Modern naturopathy",
+        "desc": "The wisdom of plants meets today's nutrition in supplements that fit your everyday life."
+      },
+      {
+        "title": "Integrative care",
+        "desc": "Beauty, immunity, energy and sleep — a portfolio designed to care for the whole body."
+      }
+    ]
+  },
+  "philosophy": {
+    "eyebrow": "Our philosophy",
+    "title": "Caring for your flora is caring for life",
+    "body": "We believe health blossoms from the inside out. Every PuraFlora supplement is born from the union of naturopathic tradition and contemporary nutrition — to nourish your flora, strengthen your immunity and bring balance back to your routine, naturally.",
+    "points": [
+      "Natural actives, carefully selected",
+      "Full transparency in every formula",
+      "Practical rituals for real life"
+    ],
+    "signature": "— The PuraFlora team"
+  },
+  "categories": {
+    "eyebrow": "Explore by goal",
+    "title": "A ritual for every need",
+    "subtitle": "Browse what your body is asking for today.",
+    "cta": "View category"
+  },
+  "how": {
+    "eyebrow": "As simple as that",
+    "title": "From cart to wellbeing",
+    "steps": [
+      {
+        "title": "Choose your ritual",
+        "desc": "Find the ideal supplement for your goal with clear categories and honest descriptions."
+      },
+      {
+        "title": "Delivered with care",
+        "desc": "We ship across Brazil with safe packaging and free shipping over R$ 199."
+      },
+      {
+        "title": "Feel the balance",
+        "desc": "Add it to your routine and watch your body flourish, day after day."
+      }
+    ]
+  },
+  "store": {
+    "featuredEyebrow": "The PuraFlora store",
+    "featuredTitle": "Our favorites",
+    "featuredSubtitle": "A selection of the most loved supplements by those who care for their own flora.",
+    "pageTitle": "PuraFlora Store",
+    "pageSubtitle": "Natural supplements for immunity, beauty, energy and balance.",
+    "all": "All",
+    "categoriesLabel": "Categories",
+    "filters": "Filters",
+    "sortLabel": "Sort by",
+    "sort": {
+      "featured": "Featured",
+      "priceAsc": "Lowest price",
+      "priceDesc": "Highest price",
+      "az": "A – Z"
+    },
+    "searchPlaceholder": "Search supplement...",
+    "results_one": "{{count}} product",
+    "results_other": "{{count}} products",
+    "noResults": "No products found",
+    "clear": "Clear filters"
+  },
+  "product": {
+    "back": "Back to store",
+    "highlights": "Highlights",
+    "composition": "Composition",
+    "usage": "How to use",
+    "indication": "Suitable for",
+    "quantity": "Quantity",
+    "addToCart": "Add to cart",
+    "buyNow": "Buy now",
+    "related": "You may also like",
+    "share": "Share",
+    "notMedicine": "This product is a dietary supplement and not a medicine.",
+    "category": "Category"
+  },
+  "cart": {
+    "title": "Your cart",
+    "empty": "Your cart is empty",
+    "emptySub": "How about starting with our favorites?",
+    "emptyCta": "Go to the store",
+    "product": "Product",
+    "price": "Price",
+    "qty": "Qty.",
+    "total": "Total",
+    "subtotal": "Subtotal",
+    "remove": "Remove",
+    "checkout": "Checkout",
+    "continue": "Continue shopping",
+    "shippingNote": "Shipping and discounts calculated at checkout.",
+    "clear": "Empty cart"
+  },
+  "checkout": {
+    "title": "Checkout",
+    "subtitle": "Fill in your details and finish via WhatsApp — no bureaucracy.",
+    "contact": "Your details",
+    "shipping": "Shipping address",
+    "name": "Full name",
+    "email": "Email",
+    "phone": "Phone / WhatsApp",
+    "cep": "Zip code",
+    "address": "Address",
+    "number": "Number",
+    "complement": "Complement",
+    "district": "District",
+    "city": "City",
+    "state": "State",
+    "notes": "Notes (optional)",
+    "summary": "Order summary",
+    "items": "Items",
+    "placeOrder": "Send order via WhatsApp",
+    "backCart": "Back to cart",
+    "required": "Required field",
+    "orderIntro": "Hi! I'd like to place the following order at PuraFlora:",
+    "empty": "Add products to your cart before checking out."
+  },
+  "testimonials": {
+    "eyebrow": "Those who care, recommend",
+    "title": "Stories that flourish",
+    "items": [
+      {
+        "quote": "I added collagen and magnesium to my routine and felt a real difference in my energy within weeks. It's part of my ritual now.",
+        "author": "Marina L.",
+        "role": "São Paulo, BR"
+      },
+      {
+        "quote": "Honest formulas and fast delivery. I like knowing exactly what I'm taking — PuraFlora's transparency won me over.",
+        "author": "Rafael T.",
+        "role": "Curitiba, BR"
+      },
+      {
+        "quote": "The tea and tryptophan helped me unwind at night. Attentive service and quality products.",
+        "author": "Camila R.",
+        "role": "Belo Horizonte, BR"
+      }
+    ]
+  },
+  "newsletter": {
+    "eyebrow": "PuraFlora community",
+    "title": "Get wellbeing rituals and exclusive offers",
+    "subtitle": "Naturopathy tips, news and a welcome treat on your first order.",
+    "placeholder": "Your best email",
+    "cta": "Sign me up",
+    "done": "Done! Welcome to the community 🌿"
+  },
+  "footer": {
+    "tagline": "Natural supplements to nourish your flora, from the gut to vitality.",
+    "explore": "Explore",
+    "help": "Help",
+    "contact": "Contact",
+    "links": {
+      "store": "Full store",
+      "benefits": "Benefits",
+      "philosophy": "Philosophy",
+      "categories": "Categories",
+      "shipping": "Shipping & delivery",
+      "returns": "Returns & exchanges",
+      "faq": "FAQ"
+    },
+    "rights": "All rights reserved.",
+    "disclaimer": "Products are dietary supplements, not medicines. They do not replace a balanced diet. Pregnant or nursing women and people under medical care should consult a health professional."
+  },
+  "notFound": {
+    "title": "Page not found",
+    "subtitle": "Looks like this flower hasn't bloomed here yet.",
+    "cta": "Back home"
+  }
+}

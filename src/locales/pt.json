@@ -1,0 +1,236 @@
+{
+  "brand": {
+    "name": "PuraFlora",
+    "tagline": "Pureza da natureza, equilíbrio para a sua flora."
+  },
+  "nav": {
+    "home": "Início",
+    "store": "Loja",
+    "benefits": "Benefícios",
+    "categories": "Categorias",
+    "philosophy": "Filosofia",
+    "contact": "Contato",
+    "cart": "Carrinho"
+  },
+  "common": {
+    "buy": "Comprar",
+    "addToCart": "Adicionar",
+    "added": "adicionado ao carrinho",
+    "viewProduct": "Ver produto",
+    "viewAll": "Ver tudo",
+    "seeStore": "Ver loja completa",
+    "from": "a partir de",
+    "outOfStock": "Esgotado",
+    "freeShipping": "Frete grátis",
+    "glutenFree": "Sem glúten",
+    "natural": "Natural",
+    "new": "Novo",
+    "bestSeller": "Mais vendido",
+    "off": "OFF",
+    "loading": "Carregando..."
+  },
+  "hero": {
+    "eyebrow": "Suplementos naturais & naturopatia",
+    "ctaExplore": "Explorar a loja",
+    "ctaStory": "Conheça a filosofia",
+    "discover": "Descubra",
+    "trust": {
+      "a": "Ingredientes naturais",
+      "b": "Fórmulas sem glúten",
+      "c": "Cuidado de dentro para fora"
+    }
+  },
+  "marquee": [
+    "Ingredientes de origem natural",
+    "Fórmulas sem glúten",
+    "Ciência a serviço da natureza",
+    "Cuidado integrativo",
+    "Feito para a sua rotina",
+    "Equilíbrio da flora intestinal"
+  ],
+  "value": {
+    "eyebrow": "Por que PuraFlora",
+    "title": "Natureza com propósito, ciência com cuidado",
+    "subtitle": "Selecionamos ativos naturais e fórmulas equilibradas para apoiar o seu corpo em cada fase — com transparência, pureza e respeito ao seu tempo.",
+    "items": [
+      {
+        "title": "Pureza em cada fórmula",
+        "desc": "Ativos de origem natural, sem excessos. O essencial para o seu bem-estar, do jeito que a natureza pensou."
+      },
+      {
+        "title": "Equilíbrio da flora",
+        "desc": "Do intestino à imunidade: cuidamos da base que sustenta a sua energia, o seu humor e a sua vitalidade."
+      },
+      {
+        "title": "Naturopatia moderna",
+        "desc": "A sabedoria das plantas encontra a nutrição atual em suplementos práticos para o dia a dia."
+      },
+      {
+        "title": "Cuidado integrativo",
+        "desc": "Beleza, imunidade, energia e sono — um portfólio pensado para acompanhar o corpo por inteiro."
+      }
+    ]
+  },
+  "philosophy": {
+    "eyebrow": "Nossa filosofia",
+    "title": "Cuidar da flora é cuidar da vida",
+    "body": "Acreditamos que a saúde floresce de dentro para fora. Cada suplemento PuraFlora nasce da união entre a tradição da naturopatia e a nutrição contemporânea — para nutrir a sua flora, fortalecer a sua imunidade e devolver o equilíbrio à sua rotina, com naturalidade.",
+    "points": [
+      "Ativos naturais selecionados com critério",
+      "Transparência total na composição",
+      "Fórmulas práticas para uma rotina real"
+    ],
+    "signature": "— Equipe PuraFlora"
+  },
+  "categories": {
+    "eyebrow": "Explore por objetivo",
+    "title": "Um cuidado para cada necessidade",
+    "subtitle": "Navegue pelo que o seu corpo pede hoje.",
+    "cta": "Ver categoria"
+  },
+  "how": {
+    "eyebrow": "Simples assim",
+    "title": "Do carrinho ao bem-estar",
+    "steps": [
+      {
+        "title": "Escolha o seu ritual",
+        "desc": "Encontre o suplemento ideal para o seu objetivo com nossas categorias e descrições claras."
+      },
+      {
+        "title": "Receba com cuidado",
+        "desc": "Enviamos para todo o Brasil com embalagem segura e frete grátis a partir de R$ 199."
+      },
+      {
+        "title": "Sinta o equilíbrio",
+        "desc": "Inclua na sua rotina e acompanhe o seu corpo florescer, dia após dia."
+      }
+    ]
+  },
+  "store": {
+    "featuredEyebrow": "A loja PuraFlora",
+    "featuredTitle": "Nossos queridinhos",
+    "featuredSubtitle": "Uma seleção dos suplementos mais amados por quem cuida da própria flora.",
+    "pageTitle": "Loja PuraFlora",
+    "pageSubtitle": "Suplementos naturais para imunidade, beleza, energia e equilíbrio.",
+    "all": "Todos",
+    "categoriesLabel": "Categorias",
+    "filters": "Filtros",
+    "sortLabel": "Ordenar por",
+    "sort": {
+      "featured": "Destaques",
+      "priceAsc": "Menor preço",
+      "priceDesc": "Maior preço",
+      "az": "A – Z"
+    },
+    "searchPlaceholder": "Buscar suplemento...",
+    "results_one": "{{count}} produto",
+    "results_other": "{{count}} produtos",
+    "noResults": "Nenhum produto encontrado",
+    "clear": "Limpar filtros"
+  },
+  "product": {
+    "back": "Voltar à loja",
+    "highlights": "Diferenciais",
+    "composition": "Composição",
+    "usage": "Modo de uso",
+    "indication": "Indicação",
+    "quantity": "Quantidade",
+    "addToCart": "Adicionar ao carrinho",
+    "buyNow": "Comprar agora",
+    "related": "Você também pode gostar",
+    "share": "Compartilhar",
+    "notMedicine": "Este produto é um suplemento alimentar e não um medicamento.",
+    "category": "Categoria"
+  },
+  "cart": {
+    "title": "Seu carrinho",
+    "empty": "O seu carrinho está vazio",
+    "emptySub": "Que tal começar pelos nossos queridinhos?",
+    "emptyCta": "Ir para a loja",
+    "product": "Produto",
+    "price": "Preço",
+    "qty": "Qtd.",
+    "total": "Total",
+    "subtotal": "Subtotal",
+    "remove": "Remover",
+    "checkout": "Finalizar compra",
+    "continue": "Continuar comprando",
+    "shippingNote": "Frete e descontos calculados na finalização.",
+    "clear": "Esvaziar carrinho"
+  },
+  "checkout": {
+    "title": "Finalizar pedido",
+    "subtitle": "Preencha seus dados e conclua pelo WhatsApp — sem burocracia.",
+    "contact": "Seus dados",
+    "shipping": "Endereço de entrega",
+    "name": "Nome completo",
+    "email": "E-mail",
+    "phone": "Telefone / WhatsApp",
+    "cep": "CEP",
+    "address": "Endereço",
+    "number": "Número",
+    "complement": "Complemento",
+    "district": "Bairro",
+    "city": "Cidade",
+    "state": "UF",
+    "notes": "Observações (opcional)",
+    "summary": "Resumo do pedido",
+    "items": "Itens",
+    "placeOrder": "Enviar pedido pelo WhatsApp",
+    "backCart": "Voltar ao carrinho",
+    "required": "Campo obrigatório",
+    "orderIntro": "Olá! Gostaria de fazer o seguinte pedido na PuraFlora:",
+    "empty": "Adicione produtos ao carrinho antes de finalizar."
+  },
+  "testimonials": {
+    "eyebrow": "Quem cuida, recomenda",
+    "title": "Histórias que florescem",
+    "items": [
+      {
+        "quote": "Incluí o colágeno e o magnésio na rotina e senti diferença real na disposição em poucas semanas. Virou parte do meu ritual.",
+        "author": "Marina L.",
+        "role": "São Paulo, SP"
+      },
+      {
+        "quote": "Fórmulas honestas e entrega rápida. Gosto de saber exatamente o que estou consumindo — a transparência da PuraFlora conquista.",
+        "author": "Rafael T.",
+        "role": "Curitiba, PR"
+      },
+      {
+        "quote": "O chá e o triptofano me ajudaram a desacelerar à noite. Atendimento atencioso e produtos de qualidade.",
+        "author": "Camila R.",
+        "role": "Belo Horizonte, MG"
+      }
+    ]
+  },
+  "newsletter": {
+    "eyebrow": "Comunidade PuraFlora",
+    "title": "Receba rituais de bem-estar e ofertas exclusivas",
+    "subtitle": "Dicas de naturopatia, novidades e um mimo de boas-vindas na sua primeira compra.",
+    "placeholder": "Seu melhor e-mail",
+    "cta": "Quero receber",
+    "done": "Pronto! Bem-vindo(a) à comunidade 🌿"
+  },
+  "footer": {
+    "tagline": "Suplementos naturais para nutrir a sua flora, do intestino à vitalidade.",
+    "explore": "Explorar",
+    "help": "Ajuda",
+    "contact": "Contato",
+    "links": {
+      "store": "Loja completa",
+      "benefits": "Benefícios",
+      "philosophy": "Filosofia",
+      "categories": "Categorias",
+      "shipping": "Envio e prazos",
+      "returns": "Trocas e devoluções",
+      "faq": "Perguntas frequentes"
+    },
+    "rights": "Todos os direitos reservados.",
+    "disclaimer": "Os produtos são suplementos alimentares e não medicamentos. Não substituem uma alimentação equilibrada. Gestantes, lactantes e pessoas em acompanhamento devem consultar um profissional de saúde."
+  },
+  "notFound": {
+    "title": "Página não encontrada",
+    "subtitle": "Parece que essa flor ainda não desabrochou por aqui.",
+    "cta": "Voltar ao início"
+  }
+}

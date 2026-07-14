@@ -1,0 +1,237 @@
+@import "tailwindcss";
+
+/*
+ * ============================================================
+ * PURAFLORA · DESIGN SYSTEM
+ * Botânico · natural · premium · integrativo
+ * ============================================================
+ */
+@theme {
+  /* Verde floresta / sage — paleta oficial PuraFlora */
+  --color-pf-green-50: #eef0e9;
+  --color-pf-green-100: #e1e3da; /* sage tint — chips, tags */
+  --color-pf-green-200: #c7cebe; /* sage claro — bordas hover */
+  --color-pf-green-300: #95a48e; /* sage — secundária */
+  --color-pf-green-400: #7e8f79; /* sage médio */
+  --color-pf-green-500: #5f7261; /* verde médio — eyebrows, ícones */
+  --color-pf-green-600: #314033; /* hover de botões */
+  --color-pf-green-700: #3f5242; /* PRIMÁRIA — botões, marca */
+  --color-pf-green-800: #37473a; /* painéis escuros */
+  --color-pf-green-900: #29352b; /* texto forte / fundos escuros */
+
+  /* Creme / superfície — fundos suaves */
+  --color-pf-cream: #fffcf7; /* fundo da página */
+  --color-pf-cream-100: #f5f4ee; /* cards / seções alternadas */
+  --color-pf-cream-200: #e1e3da; /* fundo de seção suave / tags */
+  --color-pf-sand: #e4e4de; /* bordas / linhas */
+
+  /* Tan / bege — acento (divisores, selos, destaques) */
+  --color-pf-gold-300: #e3d6c4;
+  --color-pf-gold-400: #d6c1a8;
+  --color-pf-gold-500: #cdb59b;
+  --color-pf-gold-600: #b69c7e;
+
+  /* Terracota suave — usado apenas em estados de erro/remoção */
+  --color-pf-clay: #b0755e;
+
+  /* Tinta / texto */
+  --color-pf-ink: #29352b;
+  --color-pf-ink-soft: #5c6c5d;
+  --color-pf-border: #e4e4de;
+
+  /* Tipografia */
+  --font-display: "Fraunces", "Georgia", ui-serif, serif;
+  --font-sans: "Inter", ui-sans-serif, system-ui, -apple-system, sans-serif;
+
+  /* Raios */
+  --radius-xl: 1rem;
+  --radius-2xl: 1.5rem;
+}
+
+@layer base {
+  :root {
+    color-scheme: light;
+  }
+
+  html {
+    scroll-behavior: smooth;
+  }
+
+  body {
+    background-color: var(--color-pf-cream);
+    color: var(--color-pf-ink);
+    font-family: var(--font-sans);
+    -webkit-font-smoothing: antialiased;
+    text-rendering: optimizeLegibility;
+  }
+
+  h1,
+  h2,
+  h3,
+  h4 {
+    font-family: var(--font-display);
+    font-weight: 600;
+    letter-spacing: -0.01em;
+    color: var(--color-pf-green-900);
+  }
+
+  ::selection {
+    background: var(--color-pf-green-200);
+    color: var(--color-pf-green-900);
+  }
+}
+
+@layer utilities {
+  .container-pf {
+    width: 100%;
+    max-width: 80rem;
+    margin-inline: auto;
+    padding-inline: 1.25rem;
+  }
+  @media (min-width: 768px) {
+    .container-pf {
+      padding-inline: 2rem;
+    }
+  }
+
+  .text-balance {
+    text-wrap: balance;
+  }
+  .text-pretty {
+    text-wrap: pretty;
+  }
+
+  /* Grão sutil sobre superfícies escuras */
+  .pf-grain {
+    position: relative;
+  }
+  .pf-grain::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    opacity: 0.5;
+    mix-blend-mode: soft-light;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='140' height='140'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+  }
+
+  /* Vidro para navbar */
+  .pf-glass {
+    background-color: color-mix(in srgb, var(--color-pf-cream) 82%, transparent);
+    backdrop-filter: saturate(150%) blur(14px);
+    -webkit-backdrop-filter: saturate(150%) blur(14px);
+  }
+
+  .pf-shadow-soft {
+    box-shadow: 0 1px 2px rgba(16, 40, 29, 0.04),
+      0 12px 30px -12px rgba(16, 40, 29, 0.18);
+  }
+  .pf-shadow-card {
+    box-shadow: 0 1px 2px rgba(16, 40, 29, 0.05),
+      0 18px 40px -22px rgba(16, 40, 29, 0.28);
+  }
+
+  .pf-line-tight {
+    line-height: 1.05;
+  }
+
+  /* Divisor com folha */
+  .pf-fade-mask {
+    -webkit-mask-image: linear-gradient(
+      to right,
+      transparent,
+      #000 8%,
+      #000 92%,
+      transparent
+    );
+    mask-image: linear-gradient(
+      to right,
+      transparent,
+      #000 8%,
+      #000 92%,
+      transparent
+    );
+  }
+
+  @keyframes pf-float {
+    0%,
+    100% {
+      transform: translateY(0);
+    }
+    50% {
+      transform: translateY(-10px);
+    }
+  }
+  .pf-float {
+    animation: pf-float 6s ease-in-out infinite;
+  }
+
+  @keyframes pf-marquee {
+    from {
+      transform: translateX(0);
+    }
+    to {
+      transform: translateX(-50%);
+    }
+  }
+  .pf-marquee {
+    animation: pf-marquee 34s linear infinite;
+  }
+
+  /* Brilho que percorre as folhas do logo (máscara pelo alfa do ícone) */
+  @keyframes pf-shine {
+    0% {
+      background-position: 180% 0;
+    }
+    100% {
+      background-position: -80% 0;
+    }
+  }
+  .pf-leaf-shine {
+    background-image: linear-gradient(
+      110deg,
+      transparent 30%,
+      rgba(230, 220, 195, 0.55) 42%,
+      rgba(255, 253, 240, 1) 50%,
+      rgba(205, 181, 155, 0.7) 58%,
+      transparent 72%
+    );
+    background-size: 260% 100%;
+    background-repeat: no-repeat;
+    mix-blend-mode: overlay;
+    animation: pf-shine 4.8s ease-in-out infinite;
+  }
+
+  /* Glow pulsante (sage/tan) atrás do logo */
+  @keyframes pf-glow-pulse {
+    0%,
+    100% {
+      opacity: 0.45;
+      transform: scale(0.96);
+    }
+    50% {
+      opacity: 0.85;
+      transform: scale(1.12);
+    }
+  }
+  .pf-glow-pulse {
+    animation: pf-glow-pulse 4.5s ease-in-out infinite;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .pf-leaf-shine,
+    .pf-glow-pulse,
+    .pf-float,
+    .pf-marquee {
+      animation: none;
+    }
+  }
+
+  .no-scrollbar::-webkit-scrollbar {
+    display: none;
+  }
+  .no-scrollbar {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+}

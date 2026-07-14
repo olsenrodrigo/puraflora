@@ -1,0 +1,8 @@
+services:
+  web:
+    build: .
+    image: puraflora-web
+    container_name: puraflora
+    ports:
+      - "8080:80"
+    restart: unless-stopped

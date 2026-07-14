@@ -1,0 +1,41 @@
+{
+  "name": "puraflora",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "description": "PuraFlora — e-commerce de suplementos naturais, naturopatia e saúde integrativa",
+  "scripts": {
+    "predev": "node scripts/prepare-images.mjs",
+    "prebuild": "node scripts/prepare-images.mjs",
+    "images": "node scripts/prepare-images.mjs",
+    "dev": "vite",
+    "build": "tsc --noEmit && vite build",
+    "preview": "vite preview",
+    "check": "tsc --noEmit"
+  },
+  "dependencies": {
+    "clsx": "^2.1.1",
+    "embla-carousel-autoplay": "^8.6.0",
+    "embla-carousel-react": "^8.6.0",
+    "framer-motion": "^12.23.24",
+    "i18next": "^26.2.0",
+    "i18next-browser-languagedetector": "^8.2.1",
+    "lucide-react": "^0.545.0",
+    "react": "^19.2.0",
+    "react-dom": "^19.2.0",
+    "react-i18next": "^17.0.8",
+    "tailwind-merge": "^3.3.1",
+    "wouter": "^3.3.5"
+  },
+  "devDependencies": {
+    "@tailwindcss/vite": "^4.1.14",
+    "@types/node": "^20.19.0",
+    "@types/react": "^19.2.0",
+    "@types/react-dom": "^19.2.0",
+    "@vitejs/plugin-react": "^5.0.4",
+    "sharp": "^0.34.5",
+    "tailwindcss": "^4.1.14",
+    "typescript": "^5.9.3",
+    "vite": "^7.1.9"
+  }
+}

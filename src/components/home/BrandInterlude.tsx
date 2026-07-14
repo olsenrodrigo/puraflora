@@ -14,8 +14,8 @@ export default function BrandInterlude() {
           <div className="mx-auto mt-8 overflow-hidden rounded-[2rem] bg-pf-cream ring-1 ring-pf-border pf-shadow-card">
             <video
               className="h-auto w-full"
-              src="/media/shimmer.mp4"
-              poster="/media/shimmer-poster.webp"
+              src="/media/wordmark.mp4"
+              poster="/media/wordmark-poster.webp"
               autoPlay
               muted
               loop

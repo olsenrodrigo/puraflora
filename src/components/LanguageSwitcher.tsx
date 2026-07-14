@@ -29,11 +29,39 @@ const LANGS = [
     short: "EN",
     flag: (
       <svg viewBox="0 0 640 480" className="h-full w-full">
-        <rect width="640" height="480" fill="#012169" />
-        <path d="M0 0 640 480M640 0 0 480" stroke="#fff" strokeWidth="64" />
-        <path d="M0 0 640 480M640 0 0 480" stroke="#c8102e" strokeWidth="38" />
-        <path d="M320 0V480M0 240H640" stroke="#fff" strokeWidth="104" />
-        <path d="M320 0V480M0 240H640" stroke="#c8102e" strokeWidth="62" />
+        <rect width="640" height="480" fill="#fff" />
+        <g fill="#b22234">
+          <rect width="640" height="37" y="0" />
+          <rect width="640" height="37" y="74" />
+          <rect width="640" height="37" y="148" />
+          <rect width="640" height="37" y="222" />
+          <rect width="640" height="37" y="296" />
+          <rect width="640" height="37" y="369" />
+          <rect width="640" height="37" y="443" />
+        </g>
+        <rect width="256" height="259" fill="#3c3b6e" />
+        <g fill="#fff">
+          <circle cx="26" cy="34" r="11" />
+          <circle cx="77" cy="34" r="11" />
+          <circle cx="128" cy="34" r="11" />
+          <circle cx="179" cy="34" r="11" />
+          <circle cx="230" cy="34" r="11" />
+          <circle cx="26" cy="94" r="11" />
+          <circle cx="77" cy="94" r="11" />
+          <circle cx="128" cy="94" r="11" />
+          <circle cx="179" cy="94" r="11" />
+          <circle cx="230" cy="94" r="11" />
+          <circle cx="26" cy="154" r="11" />
+          <circle cx="77" cy="154" r="11" />
+          <circle cx="128" cy="154" r="11" />
+          <circle cx="179" cy="154" r="11" />
+          <circle cx="230" cy="154" r="11" />
+          <circle cx="26" cy="214" r="11" />
+          <circle cx="77" cy="214" r="11" />
+          <circle cx="128" cy="214" r="11" />
+          <circle cx="179" cy="214" r="11" />
+          <circle cx="230" cy="214" r="11" />
+        </g>
       </svg>
     ),
   },

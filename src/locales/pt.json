@@ -183,7 +183,18 @@
     "backCart": "Voltar ao carrinho",
     "required": "Campo obrigatório",
     "orderIntro": "Olá! Gostaria de fazer o seguinte pedido na PuraFlora:",
-    "empty": "Adicione produtos ao carrinho antes de finalizar."
+    "empty": "Adicione produtos ao carrinho antes de finalizar.",
+    "freightLegend": "Frete",
+    "freightRow": "Frete",
+    "calcFreight": "Calcular frete",
+    "calculating": "Calculando...",
+    "freightHintCep": "Preencha o CEP acima e calcule o frete.",
+    "freightFree": "Grátis",
+    "daysLabel": "dias úteis",
+    "freightMock": "Valores simulados (modo de teste — sem token SmartEnvios).",
+    "freightError": "Não foi possível calcular o frete. Confira o CEP.",
+    "freightNone": "Nenhuma opção de frete disponível para este CEP.",
+    "total": "Total"
   },
   "testimonials": {
     "eyebrow": "Quem cuida, recomenda",

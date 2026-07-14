@@ -183,7 +183,18 @@
     "backCart": "Back to cart",
     "required": "Required field",
     "orderIntro": "Hi! I'd like to place the following order at PuraFlora:",
-    "empty": "Add products to your cart before checking out."
+    "empty": "Add products to your cart before checking out.",
+    "freightLegend": "Shipping",
+    "freightRow": "Shipping",
+    "calcFreight": "Calculate shipping",
+    "calculating": "Calculating...",
+    "freightHintCep": "Fill in the zip code above and calculate shipping.",
+    "freightFree": "Free",
+    "daysLabel": "business days",
+    "freightMock": "Simulated values (test mode — no SmartEnvios token).",
+    "freightError": "Could not calculate shipping. Check the zip code.",
+    "freightNone": "No shipping options available for this zip code.",
+    "total": "Total"
   },
   "testimonials": {
     "eyebrow": "Those who care, recommend",

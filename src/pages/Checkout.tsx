@@ -1,11 +1,27 @@
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { Link } from "wouter";
 import { useTranslation } from "react-i18next";
-import { ArrowLeft, Check, MessageCircle, ShoppingBag } from "lucide-react";
+import {
+  ArrowLeft,
+  Check,
+  Loader2,
+  MessageCircle,
+  ShoppingBag,
+  Truck,
+} from "lucide-react";
 import type { Lang } from "@/i18n";
-import { tp, WHATSAPP_NUMBER } from "@/data/catalog";
+import { getPackage, tp, WHATSAPP_NUMBER } from "@/data/catalog";
 import { useCart } from "@/context/CartContext";
 import { brl, cn } from "@/lib/utils";
+
+interface ShipOption {
+  id: string;
+  service: string;
+  days: number;
+  value: number;
+  finalValue: number;
+  free: boolean;
+}
 
 interface Form {
   name: string;
@@ -42,6 +58,29 @@ export default function Checkout() {
   const [form, setForm] = useState<Form>(EMPTY);
   const [touched, setTouched] = useState(false);
   const [sent, setSent] = useState(false);
+
+  // frete
+  const [shipOptions, setShipOptions] = useState<ShipOption[] | null>(null);
+  const [shipSel, setShipSel] = useState<ShipOption | null>(null);
+  const [shipLoading, setShipLoading] = useState(false);
+  const [shipError, setShipError] = useState("");
+  const [shipMock, setShipMock] = useState(false);
+
+  const volumes = useMemo(
+    () =>
+      lines.map((l) => {
+        const p = getPackage(l.product.slug);
+        return {
+          weight: p.weightG / 1000,
+          height: p.heightCm,
+          width: p.widthCm,
+          length: p.lengthCm,
+          quantity: l.quantity,
+          price: l.product.price,
+        };
+      }),
+    [lines]
+  );
 
   const required: (keyof Form)[] = [
     "name",
@@ -101,6 +140,43 @@ export default function Checkout() {
     );
   }
 
+  const shippingCost = shipSel ? shipSel.finalValue : 0;
+  const total = subtotal + shippingCost;
+
+  const calcFreight = async () => {
+    const cep = form.cep.replace(/\D/g, "");
+    if (cep.length !== 8) {
+      setShipError(t("checkout.freightHintCep"));
+      return;
+    }
+    setShipLoading(true);
+    setShipError("");
+    setShipSel(null);
+    try {
+      const res = await fetch("/api/shipping/quote", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ zipTo: cep, subtotal, volumes }),
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        setShipOptions(null);
+        setShipError(data.error || t("checkout.freightError"));
+        return;
+      }
+      const opts: ShipOption[] = data.options || [];
+      setShipOptions(opts);
+      setShipMock(!!data.mock);
+      if (opts.length) setShipSel(opts[0]);
+      else setShipError(t("checkout.freightNone"));
+    } catch {
+      setShipOptions(null);
+      setShipError(t("checkout.freightError"));
+    } finally {
+      setShipLoading(false);
+    }
+  };
+
   const submit = (e: React.FormEvent) => {
     e.preventDefault();
     setTouched(true);
@@ -122,6 +198,11 @@ export default function Checkout() {
       itemLines,
       "",
       `${t("cart.subtotal")}: ${brl(subtotal)}`,
+      shipSel &&
+        `${t("checkout.freightRow")}: ${
+          shipSel.free ? t("checkout.freightFree") : brl(shipSel.finalValue)
+        } (${shipSel.service})`,
+      `${t("checkout.total")}: ${brl(total)}`,
       "",
       `${t("checkout.name")}: ${form.name}`,
       `${t("checkout.phone")}: ${form.phone}`,
@@ -251,6 +332,91 @@ export default function Checkout() {
                 />
               </div>
             </fieldset>
+
+            {/* frete */}
+            <fieldset className="rounded-2xl border border-pf-green-900/8 bg-white p-6">
+              <legend className="px-2 font-display text-lg font-semibold text-pf-green-900">
+                {t("checkout.freightLegend")}
+              </legend>
+              <div className="flex flex-wrap items-center gap-3">
+                <button
+                  type="button"
+                  onClick={calcFreight}
+                  disabled={
+                    shipLoading || form.cep.replace(/\D/g, "").length !== 8
+                  }
+                  className="inline-flex items-center gap-2 rounded-full bg-pf-green-700 px-5 py-2.5 text-sm font-semibold text-pf-cream transition-colors hover:bg-pf-green-600 disabled:cursor-not-allowed disabled:opacity-50"
+                >
+                  {shipLoading ? (
+                    <Loader2 size={16} className="animate-spin" />
+                  ) : (
+                    <Truck size={16} />
+                  )}
+                  {shipLoading
+                    ? t("checkout.calculating")
+                    : t("checkout.calcFreight")}
+                </button>
+                {!shipOptions && !shipError && (
+                  <span className="text-sm text-pf-ink-soft">
+                    {t("checkout.freightHintCep")}
+                  </span>
+                )}
+              </div>
+
+              {shipError && (
+                <p className="mt-3 text-sm text-pf-clay">{shipError}</p>
+              )}
+
+              {shipOptions && shipOptions.length > 0 && (
+                <div className="mt-4 space-y-2">
+                  {shipOptions.map((o) => {
+                    const selected =
+                      shipSel?.id === o.id && shipSel?.service === o.service;
+                    return (
+                      <label
+                        key={o.id + o.service}
+                        className={cn(
+                          "flex cursor-pointer items-center gap-3 rounded-xl border p-3.5 transition-colors",
+                          selected
+                            ? "border-pf-green-500 bg-pf-green-50"
+                            : "border-pf-green-900/12 hover:border-pf-green-300"
+                        )}
+                      >
+                        <input
+                          type="radio"
+                          name="freight"
+                          checked={selected}
+                          onChange={() => setShipSel(o)}
+                          className="h-4 w-4 accent-pf-green-700"
+                        />
+                        <div className="flex-1">
+                          <div className="font-semibold text-pf-green-900">
+                            {o.service}
+                          </div>
+                          <div className="text-xs text-pf-ink-soft">
+                            {o.days} {t("checkout.daysLabel")}
+                          </div>
+                        </div>
+                        {o.free ? (
+                          <span className="font-display text-lg font-semibold text-pf-green-600">
+                            {t("checkout.freightFree")}
+                          </span>
+                        ) : (
+                          <span className="font-display text-lg font-semibold text-pf-green-700">
+                            {brl(o.finalValue)}
+                          </span>
+                        )}
+                      </label>
+                    );
+                  })}
+                  {shipMock && (
+                    <p className="pt-1 text-xs text-pf-ink-soft/70">
+                      {t("checkout.freightMock")}
+                    </p>
+                  )}
+                </div>
+              )}
+            </fieldset>
           </div>
 
           {/* summary */}
@@ -285,11 +451,29 @@ export default function Checkout() {
                 })}
               </ul>
 
-              <div className="mt-5 flex items-center justify-between border-t border-pf-green-900/8 pt-5">
-                <span className="text-pf-ink-soft">{t("cart.subtotal")}</span>
-                <span className="font-display text-2xl font-semibold text-pf-green-900">
-                  {brl(subtotal)}
-                </span>
+              <div className="mt-5 space-y-2 border-t border-pf-green-900/8 pt-5">
+                <div className="flex items-center justify-between text-pf-ink-soft">
+                  <span>{t("cart.subtotal")}</span>
+                  <span className="font-medium text-pf-ink">{brl(subtotal)}</span>
+                </div>
+                <div className="flex items-center justify-between text-pf-ink-soft">
+                  <span>{t("checkout.freightRow")}</span>
+                  <span className="font-medium text-pf-ink">
+                    {shipSel
+                      ? shipSel.free
+                        ? t("checkout.freightFree")
+                        : brl(shipSel.finalValue)
+                      : "—"}
+                  </span>
+                </div>
+                <div className="flex items-center justify-between border-t border-pf-green-900/8 pt-3">
+                  <span className="font-semibold text-pf-green-900">
+                    {t("checkout.total")}
+                  </span>
+                  <span className="font-display text-2xl font-semibold text-pf-green-900">
+                    {brl(total)}
+                  </span>
+                </div>
               </div>
 
               <button

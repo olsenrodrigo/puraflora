@@ -1134,3 +1134,40 @@ export const FEATURED_PRODUCTS = PRODUCTS.filter((p) => p.featured);
 
 export const FREE_SHIPPING_THRESHOLD = 199;
 export const WHATSAPP_NUMBER = "5511999999999"; // placeholder — substituir pelo número real
+
+// ── Peso e dimensões de embalagem (para cotação de frete) ───────────────────
+export interface PackageDims {
+  weightG: number; // gramas (produto + embalagem)
+  lengthCm: number;
+  widthCm: number;
+  heightCm: number;
+}
+
+export const PACKAGES: Record<string, PackageDims> = {
+  "dermemax-1000": { weightG: 380, lengthCm: 12, widthCm: 7, heightCm: 7 },
+  "uc-flex-ii": { weightG: 260, lengthCm: 11, widthCm: 6, heightCm: 6 },
+  "natus-viton-imuno": { weightG: 220, lengthCm: 10, widthCm: 6, heightCm: 6 },
+  "6mags": { weightG: 240, lengthCm: 11, widthCm: 6, heightCm: 6 },
+  coq10: { weightG: 200, lengthCm: 10, widthCm: 6, heightCm: 6 },
+  "keratin-maxx": { weightG: 260, lengthCm: 11, widthCm: 6, heightCm: 6 },
+  triptofano: { weightG: 200, lengthCm: 10, widthCm: 6, heightCm: 6 },
+  "omegas-femme": { weightG: 300, lengthCm: 11, widthCm: 6, heightCm: 6 },
+  "top-reduxx": { weightG: 240, lengthCm: 11, widthCm: 6, heightCm: 6 },
+  "natus-viton-az": { weightG: 340, lengthCm: 12, widthCm: 7, heightCm: 7 },
+  "ther-maniac": { weightG: 300, lengthCm: 11, widthCm: 6, heightCm: 6 },
+  natuprost: { weightG: 260, lengthCm: 11, widthCm: 6, heightCm: 6 },
+  "curcuma-magnesio-msm": { weightG: 240, lengthCm: 11, widthCm: 6, heightCm: 6 },
+  cranberry: { weightG: 220, lengthCm: 10, widthCm: 6, heightCm: 6 },
+  "feno-grego": { weightG: 220, lengthCm: 10, widthCm: 6, heightCm: 6 },
+  dimalato: { weightG: 220, lengthCm: 10, widthCm: 6, heightCm: 6 },
+  natusmel: { weightG: 560, lengthCm: 12, widthCm: 9, heightCm: 9 },
+  "nutri-natus-amargo": { weightG: 620, lengthCm: 22, widthCm: 7, heightCm: 7 },
+  "menta-fort": { weightG: 120, lengthCm: 8, widthCm: 4, heightCm: 4 },
+};
+
+export function getPackage(slug: string): PackageDims {
+  return (
+    PACKAGES[slug] ?? { weightG: 300, lengthCm: 12, widthCm: 8, heightCm: 8 }
+  );
+}
+

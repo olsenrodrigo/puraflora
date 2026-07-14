@@ -79,12 +79,7 @@ export default function Hero() {
                   <div className="grid min-h-[100svh] items-center gap-8 pb-20 pt-28 md:grid-cols-2 md:gap-6">
                     {/* text */}
                     <div className="order-2 max-w-xl md:order-1">
-                      <span className="inline-flex items-center gap-2 rounded-full border border-pf-green-200 bg-pf-green-100 px-4 py-2 text-sm font-semibold tracking-wide text-pf-green-700">
-                        <Sprout size={15} className="text-pf-green-500" />
-                        {t("hero.eyebrow")}
-                      </span>
-
-                      <p className="mt-6 text-sm font-semibold uppercase tracking-[0.2em] text-pf-gold-600">
+                      <p className="text-sm font-semibold uppercase tracking-[0.2em] text-pf-gold-600">
                         {categoryName(product.category, lang)}
                       </p>
                       <h1 className="mt-2 font-display text-4xl font-semibold leading-[1.05] text-pf-green-900 text-balance sm:text-5xl lg:text-6xl">

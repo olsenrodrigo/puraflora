@@ -6,6 +6,8 @@
   "nav": {
     "home": "Início",
     "store": "Loja",
+    "beto": "Beto Munhoz",
+    "seal": "Selo de Qualidade",
     "benefits": "Benefícios",
     "categories": "Categorias",
     "philosophy": "Filosofia",
@@ -212,6 +214,34 @@
     "cta": "Quero receber",
     "done": "Pronto! Bem-vindo(a) à comunidade 🌿"
   },
+  "beto": {
+    "eyebrow": "Especialista em saúde & naturopata",
+    "title": "A confiança de Beto Munhoz em cada produto",
+    "intro": "Há anos dedico minha vida ao estudo da saúde, da beleza, da qualidade de vida e da naturopatia. Nesta loja você encontra uma seleção criteriosa de produtos escolhidos com responsabilidade, qualidade e compromisso. Meu objetivo é oferecer apenas produtos que atendam aos padrões que considero essenciais para cuidar da saúde e do bem-estar das pessoas.",
+    "welcome": "Seja muito bem-vindo(a)!",
+    "name": "Beto Munhoz",
+    "role": "Especialista em saúde e naturopata",
+    "bio": "Pesquisador e comunicador na área da saúde, qualidade de vida e bem-estar.",
+    "positioning": "Conhecimento que gera confiança. Produtos selecionados com responsabilidade.",
+    "socialTitle": "Mais de 1 milhão de pessoas acompanham o trabalho de Beto Munhoz",
+    "socialSubtitle": "Acompanhe conteúdos gratuitos sobre saúde, qualidade de vida, beleza e naturopatia.",
+    "followers": "seguidores",
+    "seal": {
+      "eyebrow": "Selo de qualidade",
+      "title": "Compromisso de Qualidade Beto Munhoz",
+      "badge": "Compromisso de qualidade",
+      "intro": "Todo produto disponibilizado nesta loja passa por critérios rigorosos de seleção. Nosso compromisso é oferecer produtos que atendam aos seguintes princípios:",
+      "principles": [
+        "Matérias-primas cuidadosamente selecionadas",
+        "Alto padrão de qualidade",
+        "Procedência confiável",
+        "Seleção baseada em conhecimento técnico e experiência",
+        "Compromisso com transparência e respeito ao consumidor"
+      ],
+      "quote": "Minha reputação foi construída ao longo de muitos anos. Por isso, só recomendo produtos nos quais realmente acredito.",
+      "author": "Beto Munhoz"
+    }
+  },
   "footer": {
     "tagline": "Suplementos naturais para nutrir a sua flora, do intestino à vitalidade.",
     "explore": "Explorar",
@@ -219,6 +249,8 @@
     "contact": "Contato",
     "links": {
       "store": "Loja completa",
+      "beto": "Beto Munhoz — Naturopata",
+      "seal": "Selo de Qualidade",
       "benefits": "Benefícios",
       "philosophy": "Filosofia",
       "categories": "Categorias",

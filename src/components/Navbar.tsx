@@ -38,13 +38,15 @@ export default function Navbar() {
 
   const links = [
     { label: t("nav.store"), type: "route" as const, href: "/loja" },
+    { label: t("nav.beto"), type: "section" as const, id: "beto" },
+    { label: t("nav.seal"), type: "section" as const, id: "selo" },
     { label: t("nav.benefits"), type: "section" as const, id: "benefits" },
     { label: t("nav.categories"), type: "section" as const, id: "categories" },
     { label: t("nav.philosophy"), type: "section" as const, id: "philosophy" },
   ];
 
   const linkClass =
-    "rounded-full px-4 py-2.5 text-[15px] lg:text-base font-semibold text-pf-ink/90 transition-colors hover:bg-pf-green-100 hover:text-pf-green-700";
+    "rounded-full px-3 py-2.5 text-[15px] font-semibold text-pf-ink/90 whitespace-nowrap transition-colors hover:bg-pf-green-100 hover:text-pf-green-700";
 
   return (
     <header
@@ -58,7 +60,7 @@ export default function Navbar() {
           <Logo className="h-11 md:h-[3.25rem]" />
         </Link>
 
-        <div className="hidden items-center gap-1.5 lg:flex">
+        <div className="hidden items-center gap-0.5 lg:flex">
           {links.map((l) =>
             l.type === "route" ? (
               <Link key={l.label} href={l.href} className={linkClass}>
@@ -121,6 +123,8 @@ export default function Navbar() {
                   {t("nav.store")}
                 </Link>
                 {[
+                  { label: t("nav.beto"), id: "beto" },
+                  { label: t("nav.seal"), id: "selo" },
                   { label: t("nav.benefits"), id: "benefits" },
                   { label: t("nav.categories"), id: "categories" },
                   { label: t("nav.philosophy"), id: "philosophy" },

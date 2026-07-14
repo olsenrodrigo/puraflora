@@ -57,6 +57,12 @@
     scroll-behavior: smooth;
   }
 
+  /* âncoras não ficam escondidas sob a navbar fixa */
+  section[id],
+  [id="footer"] {
+    scroll-margin-top: 5.5rem;
+  }
+
   body {
     background-color: var(--color-pf-cream);
     color: var(--color-pf-ink);

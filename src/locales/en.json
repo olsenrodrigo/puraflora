@@ -6,6 +6,8 @@
   "nav": {
     "home": "Home",
     "store": "Store",
+    "beto": "Beto Munhoz",
+    "seal": "Quality Seal",
     "benefits": "Benefits",
     "categories": "Categories",
     "philosophy": "Philosophy",
@@ -212,6 +214,34 @@
     "cta": "Sign me up",
     "done": "Done! Welcome to the community 🌿"
   },
+  "beto": {
+    "eyebrow": "Health specialist & naturopath",
+    "title": "Beto Munhoz's trust in every product",
+    "intro": "For years I have dedicated my life to the study of health, beauty, quality of life and naturopathy. In this store you'll find a carefully curated selection of products, chosen with responsibility, quality and commitment. My goal is to offer only products that meet the standards I consider essential to care for people's health and wellbeing.",
+    "welcome": "You are very welcome!",
+    "name": "Beto Munhoz",
+    "role": "Health specialist and naturopath",
+    "bio": "Researcher and communicator in health, quality of life and wellbeing.",
+    "positioning": "Knowledge that builds trust. Products selected with responsibility.",
+    "socialTitle": "More than 1 million people follow Beto Munhoz's work",
+    "socialSubtitle": "Follow free content on health, quality of life, beauty and naturopathy.",
+    "followers": "followers",
+    "seal": {
+      "eyebrow": "Quality seal",
+      "title": "Beto Munhoz Quality Commitment",
+      "badge": "Quality commitment",
+      "intro": "Every product offered in this store goes through rigorous selection criteria. Our commitment is to offer products that meet the following principles:",
+      "principles": [
+        "Carefully selected raw materials",
+        "High quality standards",
+        "Trustworthy provenance",
+        "Selection based on technical knowledge and experience",
+        "Commitment to transparency and respect for the consumer"
+      ],
+      "quote": "My reputation was built over many years. That's why I only recommend products I truly believe in.",
+      "author": "Beto Munhoz"
+    }
+  },
   "footer": {
     "tagline": "Natural supplements to nourish your flora, from the gut to vitality.",
     "explore": "Explore",
@@ -219,6 +249,8 @@
     "contact": "Contact",
     "links": {
       "store": "Full store",
+      "beto": "Beto Munhoz — Naturopath",
+      "seal": "Quality Seal",
       "benefits": "Benefits",
       "philosophy": "Philosophy",
       "categories": "Categories",

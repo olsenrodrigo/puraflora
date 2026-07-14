@@ -99,8 +99,34 @@ async function prepareBrand() {
   console.log(`[brand] logos gerados em public/brand/`);
 }
 
+// Fotos do especialista (Beto Munhoz) → webp otimizado
+async function prepareTeam() {
+  const TEAM_SRC = path.resolve(SRC_DIR, "../fotos");
+  const TEAM_OUT = path.resolve(OUT_DIR, "../beto");
+  if (!fs.existsSync(TEAM_SRC)) {
+    console.warn(`[team] pasta de fotos não encontrada: ${TEAM_SRC}`);
+    return;
+  }
+  fs.mkdirSync(TEAM_OUT, { recursive: true });
+  const jobs = [
+    { src: "beto1.jpeg", out: "beto-retrato.webp", w: 900, h: 900 },
+    { src: "beto2.jpeg", out: "beto-naturopata.webp", w: 820, h: 1040 },
+  ];
+  for (const j of jobs) {
+    const src = path.join(TEAM_SRC, j.src);
+    const out = path.join(TEAM_OUT, j.out);
+    if (!fs.existsSync(src) || fs.existsSync(out)) continue;
+    await sharp(src)
+      .resize({ width: j.w, height: j.h, fit: "cover", position: "top" })
+      .webp({ quality: 82 })
+      .toFile(out);
+    console.log(`[team] ✓ ${j.out}`);
+  }
+}
+
 async function run() {
   await prepareBrand();
+  await prepareTeam();
 
   if (!fs.existsSync(SRC_DIR)) {
     console.warn(`[images] pasta de origem não encontrada: ${SRC_DIR} — pulando.`);

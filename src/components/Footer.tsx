@@ -52,6 +52,12 @@ export default function Footer() {
             <FooterLink onClick={() => setLocation("/loja")}>
               {t("footer.links.store")}
             </FooterLink>
+            <FooterLink onClick={() => section("beto")}>
+              {t("footer.links.beto")}
+            </FooterLink>
+            <FooterLink onClick={() => section("selo")}>
+              {t("footer.links.seal")}
+            </FooterLink>
             <FooterLink onClick={() => section("benefits")}>
               {t("footer.links.benefits")}
             </FooterLink>

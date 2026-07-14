@@ -9,6 +9,7 @@ import Store from "@/pages/Store";
 import ProductDetail from "@/pages/ProductDetail";
 import Cart from "@/pages/Cart";
 import Checkout from "@/pages/Checkout";
+import Etiquetas from "@/pages/Etiquetas";
 import NotFound from "@/pages/NotFound";
 
 function ScrollToTop() {
@@ -32,6 +33,7 @@ export default function App() {
           <Route path="/loja/produto/:slug" component={ProductDetail} />
           <Route path="/loja/carrinho" component={Cart} />
           <Route path="/loja/checkout" component={Checkout} />
+          <Route path="/etiquetas" component={Etiquetas} />
           <Route component={NotFound} />
         </Switch>
       </main>

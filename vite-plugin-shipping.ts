@@ -10,6 +10,7 @@ import {
   priceQuotes,
   createOrder,
   generateLabel,
+  track,
   type SmartEnviosConfig,
 } from "./server/smartenvios/index";
 
@@ -79,7 +80,7 @@ function makeHandler(cfg: SmartEnviosConfig) {
         });
       }
 
-      // Criar pedido (DC) + gerar etiqueta
+      // Criar pedido (NF-e/DC) + gerar etiqueta
       if (req.method === "POST" && url === "/order") {
         const body = await readJson(req);
         const order = await createOrder(cfg, body);
@@ -93,6 +94,26 @@ function makeHandler(cfg: SmartEnviosConfig) {
           label = await generateLabel(cfg, { ...idOrCode, type: "pdf" });
         }
         return json(res, 200, { mock: cfg.mock, order, label });
+      }
+
+      // Gerar etiqueta de um pedido existente (por código/id/chave NF-e)
+      if (req.method === "POST" && url === "/label") {
+        const body = await readJson(req);
+        const label = await generateLabel(cfg, {
+          orderIds: body.orderIds,
+          trackingCodes: body.trackingCodes,
+          nfeKeys: body.nfeKeys,
+          type: body.type || "pdf",
+          documentType: body.documentType,
+        });
+        return json(res, 200, { mock: cfg.mock, label });
+      }
+
+      // Rastreio
+      if (req.method === "POST" && url === "/track") {
+        const body = await readJson(req);
+        const events = await track(cfg, String(body.trackingCode || ""));
+        return json(res, 200, { mock: cfg.mock, events });
       }
 
       return json(res, 404, { error: "Rota de frete não encontrada" });

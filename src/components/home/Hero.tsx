@@ -79,8 +79,8 @@ export default function Hero() {
                   <div className="grid min-h-[100svh] items-center gap-8 pb-20 pt-28 md:grid-cols-2 md:gap-6">
                     {/* text */}
                     <div className="order-2 max-w-xl md:order-1">
-                      <span className="inline-flex items-center gap-2 rounded-full border border-pf-green-200 bg-pf-green-100 px-3.5 py-1.5 text-xs font-medium tracking-wide text-pf-green-700">
-                        <Sprout size={13} className="text-pf-green-500" />
+                      <span className="inline-flex items-center gap-2 rounded-full border border-pf-green-200 bg-pf-green-100 px-4 py-2 text-sm font-semibold tracking-wide text-pf-green-700">
+                        <Sprout size={15} className="text-pf-green-500" />
                         {t("hero.eyebrow")}
                       </span>
 
@@ -138,9 +138,9 @@ export default function Hero() {
                         {trust.map(({ icon: Icon, label }) => (
                           <span
                             key={label}
-                            className="inline-flex items-center gap-2 text-xs font-medium text-pf-ink-soft"
+                            className="inline-flex items-center gap-2 text-sm font-medium text-pf-ink-soft"
                           >
-                            <Icon size={14} className="text-pf-green-500" />
+                            <Icon size={16} className="text-pf-green-500" />
                             {label}
                           </span>
                         ))}

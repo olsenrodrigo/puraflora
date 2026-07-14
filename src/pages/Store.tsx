@@ -107,7 +107,7 @@ export default function Store() {
                 value={query}
                 onChange={(e) => setQuery(e.target.value)}
                 placeholder={t("store.searchPlaceholder")}
-                className="w-full rounded-full border border-pf-green-900/12 bg-white py-2.5 pl-10 pr-9 text-sm text-pf-ink outline-none transition-colors focus:border-pf-green-400"
+                className="w-full rounded-full border border-pf-green-900/12 bg-white py-3 pl-11 pr-10 text-base text-pf-ink outline-none transition-colors focus:border-pf-green-400"
               />
               {query && (
                 <button
@@ -120,20 +120,20 @@ export default function Store() {
             </div>
 
             <div className="flex items-center justify-between gap-3 sm:justify-end">
-              <span className="text-sm text-pf-ink-soft">
+              <span className="text-base text-pf-ink-soft">
                 {t(products.length === 1 ? "store.results_one" : "store.results_other", {
                   count: products.length,
                 })}
               </span>
               <div className="relative">
                 <SlidersHorizontal
-                  size={15}
-                  className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-pf-ink-soft"
+                  size={16}
+                  className="pointer-events-none absolute left-3.5 top-1/2 -translate-y-1/2 text-pf-ink-soft"
                 />
                 <select
                   value={sort}
                   onChange={(e) => setSort(e.target.value as Sort)}
-                  className="appearance-none rounded-full border border-pf-green-900/12 bg-white py-2.5 pl-9 pr-8 text-sm font-medium text-pf-ink outline-none focus:border-pf-green-400"
+                  className="appearance-none rounded-full border border-pf-green-900/12 bg-white py-3 pl-10 pr-8 text-[15px] font-semibold text-pf-ink outline-none focus:border-pf-green-400"
                 >
                   <option value="featured">{t("store.sort.featured")}</option>
                   <option value="priceAsc">{t("store.sort.priceAsc")}</option>
@@ -189,7 +189,7 @@ function Pill({
     <button
       onClick={onClick}
       className={cn(
-        "shrink-0 whitespace-nowrap rounded-full border px-4 py-2 text-sm font-medium transition-colors",
+        "shrink-0 whitespace-nowrap rounded-full border px-5 py-2.5 text-[15px] font-semibold transition-colors",
         active
           ? "border-pf-green-700 bg-pf-green-700 text-pf-cream"
           : "border-pf-green-900/12 bg-white text-pf-ink-soft hover:border-pf-green-300 hover:text-pf-green-700"

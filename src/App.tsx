@@ -3,6 +3,7 @@ import { Route, Switch, useLocation } from "wouter";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
 import CartDrawer from "@/components/CartDrawer";
+import SplashIntro from "@/components/SplashIntro";
 import Home from "@/pages/Home";
 import Store from "@/pages/Store";
 import ProductDetail from "@/pages/ProductDetail";
@@ -21,6 +22,7 @@ function ScrollToTop() {
 export default function App() {
   return (
     <div className="flex min-h-screen flex-col">
+      <SplashIntro />
       <ScrollToTop />
       <Navbar />
       <main className="flex-1">

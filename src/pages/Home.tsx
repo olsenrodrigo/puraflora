@@ -7,6 +7,7 @@ import Categories from "@/components/home/Categories";
 import FeaturedStore from "@/components/home/FeaturedStore";
 import Philosophy from "@/components/home/Philosophy";
 import HowItWorks from "@/components/home/HowItWorks";
+import BrandInterlude from "@/components/home/BrandInterlude";
 import Testimonials from "@/components/home/Testimonials";
 import Newsletter from "@/components/home/Newsletter";
 
@@ -26,6 +27,7 @@ export default function Home() {
       <FeaturedStore />
       <Philosophy />
       <HowItWorks />
+      <BrandInterlude />
       <Testimonials />
       <Newsletter />
     </>

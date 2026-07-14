@@ -44,7 +44,7 @@ export default function Navbar() {
   ];
 
   const linkClass =
-    "rounded-full px-3.5 py-2 text-sm font-medium text-pf-ink/80 transition-colors hover:bg-pf-green-900/5 hover:text-pf-green-700";
+    "rounded-full px-4 py-2.5 text-[15px] lg:text-base font-semibold text-pf-ink/90 transition-colors hover:bg-pf-green-100 hover:text-pf-green-700";
 
   return (
     <header
@@ -55,10 +55,10 @@ export default function Navbar() {
     >
       <nav className="container-pf flex items-center justify-between gap-4">
         <Link href="/" className="shrink-0" onClick={() => setMobileOpen(false)}>
-          <Logo className="h-9" />
+          <Logo className="h-11 md:h-[3.25rem]" />
         </Link>
 
-        <div className="hidden items-center gap-1 lg:flex">
+        <div className="hidden items-center gap-1.5 lg:flex">
           {links.map((l) =>
             l.type === "route" ? (
               <Link key={l.label} href={l.href} className={linkClass}>
@@ -82,11 +82,11 @@ export default function Navbar() {
           <button
             onClick={open}
             aria-label={t("nav.cart")}
-            className="relative flex h-10 w-10 items-center justify-center rounded-full border border-pf-border text-pf-green-800 transition-colors hover:bg-pf-green-900/5"
+            className="relative flex h-12 w-12 items-center justify-center rounded-full border border-pf-border text-pf-green-800 transition-colors hover:bg-pf-green-100"
           >
-            <ShoppingBag size={18} />
+            <ShoppingBag size={22} />
             {itemCount > 0 && (
-              <span className="absolute -right-1 -top-1 flex h-5 min-w-5 items-center justify-center rounded-full bg-pf-green-700 px-1 text-[11px] font-bold text-pf-cream">
+              <span className="absolute -right-1 -top-1 flex h-6 min-w-6 items-center justify-center rounded-full bg-pf-green-700 px-1 text-[13px] font-bold text-pf-cream">
                 {itemCount}
               </span>
             )}
@@ -95,9 +95,9 @@ export default function Navbar() {
           <button
             onClick={() => setMobileOpen((v) => !v)}
             aria-label="Menu"
-            className="flex h-10 w-10 items-center justify-center rounded-full border border-pf-border text-pf-green-800 transition-colors hover:bg-pf-green-900/5 lg:hidden"
+            className="flex h-12 w-12 items-center justify-center rounded-full border border-pf-border text-pf-green-800 transition-colors hover:bg-pf-green-100 lg:hidden"
           >
-            {mobileOpen ? <X size={18} /> : <Menu size={18} />}
+            {mobileOpen ? <X size={22} /> : <Menu size={22} />}
           </button>
         </div>
       </nav>
@@ -116,7 +116,7 @@ export default function Navbar() {
                 <Link
                   href="/loja"
                   onClick={() => setMobileOpen(false)}
-                  className="block rounded-xl px-4 py-3 text-sm font-medium text-pf-ink hover:bg-pf-cream-100"
+                  className="block rounded-xl px-4 py-3.5 text-base font-semibold text-pf-ink hover:bg-pf-cream-100"
                 >
                   {t("nav.store")}
                 </Link>
@@ -129,7 +129,7 @@ export default function Navbar() {
                   <button
                     key={l.id}
                     onClick={() => goToSection(l.id)}
-                    className="block w-full rounded-xl px-4 py-3 text-left text-sm font-medium text-pf-ink hover:bg-pf-cream-100"
+                    className="block w-full rounded-xl px-4 py-3.5 text-left text-base font-semibold text-pf-ink hover:bg-pf-cream-100"
                   >
                     {l.label}
                   </button>

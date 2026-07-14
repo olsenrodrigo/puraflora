@@ -74,7 +74,7 @@ export default function Categories() {
                         className="text-pf-green-400 opacity-0 transition-all group-hover:translate-x-0.5 group-hover:opacity-100"
                       />
                     </h3>
-                    <p className="mt-1.5 text-sm leading-relaxed text-pf-ink-soft">
+                    <p className="mt-1.5 text-[15px] leading-relaxed text-pf-ink-soft">
                       {cat.blurb[lang]}
                     </p>
                   </div>

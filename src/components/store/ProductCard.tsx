@@ -1,6 +1,6 @@
 import { Link } from "wouter";
 import { useTranslation } from "react-i18next";
-import { Check, Plus } from "lucide-react";
+import { Check, ShoppingBag } from "lucide-react";
 import type { Lang } from "@/i18n";
 import { categoryName, tp, type Product } from "@/data/catalog";
 import { useCart } from "@/context/CartContext";
@@ -50,43 +50,50 @@ export default function ProductCard({ product }: { product: Product }) {
         </div>
       </Link>
 
-      <div className="flex flex-1 flex-col p-4">
-        <span className="text-[11px] font-semibold uppercase tracking-wider text-pf-green-500">
+      <div className="flex flex-1 flex-col p-4 md:p-5">
+        <span className="text-xs font-semibold uppercase tracking-wider text-pf-green-500">
           {categoryName(product.category, lang)}
         </span>
-        <Link href={`/loja/produto/${product.slug}`} className="mt-1">
-          <h3 className="line-clamp-2 min-h-[2.6rem] font-display text-[1.02rem] font-semibold leading-snug text-pf-green-900 transition-colors hover:text-pf-green-600">
+        <Link href={`/loja/produto/${product.slug}`} className="mt-1.5">
+          <h3 className="line-clamp-2 min-h-[3rem] font-display text-lg font-semibold leading-snug text-pf-green-900 transition-colors hover:text-pf-green-600">
             {text.name}
           </h3>
         </Link>
-        <p className="mt-1 line-clamp-1 text-xs text-pf-ink-soft">{text.size}</p>
+        <p className="mt-1 line-clamp-1 text-sm text-pf-ink-soft">{text.size}</p>
 
-        <div className="mt-2">
-          <Rating value={product.rating} reviews={product.reviews} />
+        <div className="mt-2.5">
+          <Rating value={product.rating} reviews={product.reviews} size={16} />
         </div>
 
-        <div className="mt-auto flex items-end justify-between gap-2 pt-4">
-          <div className="flex flex-col">
+        <div className="mt-auto pt-4">
+          <div className="mb-3 flex items-baseline gap-2">
             {hasDiscount && (
-              <span className="text-xs text-pf-ink-soft/70 line-through">
+              <span className="text-sm text-pf-ink-soft/70 line-through">
                 {brl(product.compareAt!)}
               </span>
             )}
-            <span className="font-display text-xl font-semibold text-pf-green-700">
+            <span className="font-display text-2xl font-semibold text-pf-green-700">
               {brl(product.price)}
             </span>
           </div>
           <button
             onClick={() => add(product.slug, 1)}
-            aria-label={t("common.addToCart")}
             className={cn(
-              "flex h-11 w-11 shrink-0 items-center justify-center rounded-xl text-white shadow-sm transition-all active:scale-95",
+              "flex min-h-[48px] w-full items-center justify-center gap-2 rounded-xl px-3 text-[15px] font-semibold text-pf-cream shadow-sm transition-all active:scale-[0.98]",
               justAdded
                 ? "bg-pf-green-500"
                 : "bg-pf-green-700 hover:bg-pf-green-600"
             )}
           >
-            {justAdded ? <Check size={19} /> : <Plus size={19} />}
+            {justAdded ? (
+              <>
+                <Check size={19} /> {t("common.addedShort")}
+              </>
+            ) : (
+              <>
+                <ShoppingBag size={18} /> {t("common.addToCart")}
+              </>
+            )}
           </button>
         </div>
       </div>

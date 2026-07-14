@@ -267,7 +267,11 @@ export async function uploadNfe(
   const url = new URL(cfg.baseUrl + "/nfe-upload");
   url.searchParams.set("freight_order_id", freightOrderId);
   const form = new FormData();
-  form.append("file", new Blob([xml], { type: "application/xml" }), filename);
+  form.append(
+    "file",
+    new Blob([xml as BlobPart], { type: "application/xml" }),
+    filename
+  );
   const res = await fetch(url.toString(), {
     method: "POST",
     headers: { token: cfg.token },

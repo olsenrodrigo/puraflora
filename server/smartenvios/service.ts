@@ -118,7 +118,7 @@ export async function createOrder(
     preference_by: input.preferenceBy ?? "QUOTE_VALUE",
     external_order_id: input.externalOrderId,
     external_origin: input.externalOrigin ?? "PuraFlora",
-    source: "PuraFlora",
+    source: "API",
     pickup: input.pickup ?? true,
     delivery: input.delivery ?? true,
     freightContentStatement: {

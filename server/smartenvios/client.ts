@@ -53,7 +53,12 @@ export class SmartEnviosClient {
     }
 
     if (!res.ok) {
-      const raw = (data as any)?.message ?? (data as any)?.error;
+      const d = data as any;
+      const raw =
+        d?.message ??
+        d?.error ??
+        d?.results?.[0]?.reason ?? // /labels: {results:[{status:"ERROR",reason}]}
+        d?.result?.reason;
       const msg = Array.isArray(raw)
         ? raw.join("; ")
         : raw || `SmartEnvios ${res.status}`;

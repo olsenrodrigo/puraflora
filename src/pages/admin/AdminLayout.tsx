@@ -10,6 +10,7 @@ import {
   Settings,
   Plug,
   Users,
+  Repeat,
 } from "lucide-react";
 import Logo from "@/components/brand/Logo";
 import { useAdminAuth } from "@/context/AdminAuthContext";
@@ -20,6 +21,7 @@ const NAV = [
   { href: "/admin/destaques", label: "Destaques", icon: Star, roles: ["admin", "operacao"] },
   { href: "/admin/categorias", label: "Categorias", icon: Tags, roles: ["admin", "operacao"] },
   { href: "/admin/pedidos", label: "Pedidos", icon: ShoppingBag, roles: ["admin", "financeiro", "operacao"] },
+  { href: "/admin/assinaturas", label: "Assinaturas", icon: Repeat, roles: ["admin", "financeiro"] },
   { href: "/admin/relatorios", label: "Relatórios", icon: BarChart3, roles: ["admin", "financeiro"] },
   { href: "/admin/configuracoes", label: "Configurações", icon: Settings, roles: ["admin"] },
   { href: "/admin/integracoes", label: "Integrações", icon: Plug, roles: ["admin", "financeiro"] },

@@ -17,7 +17,8 @@
     "check": "tsc --noEmit && tsc --noEmit -p tsconfig.server.json",
     "db:push": "drizzle-kit push",
     "db:seed": "tsx server/seed.ts",
-    "mcp": "tsx server/smartenvios/mcp.ts"
+    "mcp": "tsx server/smartenvios/mcp.ts",
+    "mcp:asaas": "tsx server/asaas/mcp.ts"
   },
   "dependencies": {
     "bcryptjs": "^3.0.3",

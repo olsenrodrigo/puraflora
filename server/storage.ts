@@ -1,4 +1,4 @@
-import { eq, desc, sql } from "drizzle-orm";
+import { eq, desc, sql, inArray, and, isNull } from "drizzle-orm";
 import { db } from "./db";
 import {
   adminUsers,
@@ -7,6 +7,9 @@ import {
   orders,
   orderItems,
   storeSettings,
+  paymentTransactions,
+  webhookEvents,
+  subscriptions,
   type ProductRow,
 } from "../shared/schema";
 
@@ -310,4 +313,200 @@ export async function getAvgLtv(): Promise<number> {
   `);
   const row = result.rows[0] as { avg_ltv: string | null };
   return row.avg_ltv != null ? Number(row.avg_ltv) : 0;
+}
+
+// --- transações de pagamento (Asaas) ---
+
+export async function createPaymentTransaction(data: typeof paymentTransactions.$inferInsert) {
+  const rows = await db.insert(paymentTransactions).values(data).returning();
+  return rows[0];
+}
+
+/**
+ * Cria a transação se ainda não existir (dedup pelo gatewayPaymentId único).
+ * Evita explosão de unique violation quando dois webhooks da mesma cobrança
+ * de assinatura chegam concorrentes.
+ */
+export async function ensurePaymentTransaction(data: typeof paymentTransactions.$inferInsert) {
+  const inserted = await db
+    .insert(paymentTransactions)
+    .values(data)
+    .onConflictDoNothing({ target: paymentTransactions.gatewayPaymentId })
+    .returning();
+  if (inserted[0]) return inserted[0];
+  return getTransactionByGatewayPaymentId(data.gatewayPaymentId);
+}
+
+/**
+ * "Reivindica" atomicamente a transição para pago desta transação. Retorna true
+ * só para a PRIMEIRA chamada — as demais (webhook + poller concorrentes) recebem
+ * false e não repetem os efeitos colaterais (materializar pedido, auto-etiqueta).
+ */
+export async function claimPaidEffects(id: number): Promise<boolean> {
+  const rows = await db
+    .update(paymentTransactions)
+    .set({ paidEffectsAt: new Date() })
+    .where(and(eq(paymentTransactions.id, id), isNull(paymentTransactions.paidEffectsAt)))
+    .returning({ id: paymentTransactions.id });
+  return rows.length > 0;
+}
+
+export async function getTransactionByGatewayPaymentId(gatewayPaymentId: string) {
+  const rows = await db
+    .select()
+    .from(paymentTransactions)
+    .where(eq(paymentTransactions.gatewayPaymentId, gatewayPaymentId));
+  return rows[0];
+}
+
+export async function getTransactionsByOrder(orderId: number) {
+  return db
+    .select()
+    .from(paymentTransactions)
+    .where(eq(paymentTransactions.orderId, orderId))
+    .orderBy(desc(paymentTransactions.createdAt));
+}
+
+export async function updatePaymentTransaction(
+  id: number,
+  data: Partial<typeof paymentTransactions.$inferInsert>
+) {
+  const rows = await db
+    .update(paymentTransactions)
+    .set({ ...data, updatedAt: new Date() })
+    .where(eq(paymentTransactions.id, id))
+    .returning();
+  return rows[0];
+}
+
+/** Transações ainda não finalizadas — alvo do poller de reconciliação. */
+export async function listOpenTransactions(limit = 50) {
+  return db
+    .select()
+    .from(paymentTransactions)
+    .where(
+      inArray(paymentTransactions.status, [
+        "PENDING",
+        "AWAITING_RISK_ANALYSIS",
+        "REFUND_REQUESTED",
+        "REFUND_IN_PROGRESS",
+      ])
+    )
+    .orderBy(desc(paymentTransactions.createdAt))
+    .limit(limit);
+}
+
+export async function listTransactionsAdmin(page: number, limit: number) {
+  const offset = (page - 1) * limit;
+  const rows = await db
+    .select()
+    .from(paymentTransactions)
+    .orderBy(desc(paymentTransactions.createdAt))
+    .limit(limit)
+    .offset(offset);
+  const all = await db.select({ id: paymentTransactions.id }).from(paymentTransactions);
+  return { transactions: rows, total: all.length };
+}
+
+// --- eventos de webhook (idempotência) ---
+
+/** Insere o evento; retorna null se já foi recebido antes (duplicata). */
+export async function insertWebhookEvent(data: typeof webhookEvents.$inferInsert) {
+  const rows = await db
+    .insert(webhookEvents)
+    .values(data)
+    .onConflictDoNothing({ target: webhookEvents.eventId })
+    .returning();
+  return rows[0] ?? null;
+}
+
+export async function markWebhookEventProcessed(id: number, error?: string) {
+  if (error) {
+    // falha: conta a tentativa (poison events param de ser reprocessados após N)
+    await db
+      .update(webhookEvents)
+      .set({ processedAt: null, error, attempts: sql`${webhookEvents.attempts} + 1` })
+      .where(eq(webhookEvents.id, id));
+  } else {
+    await db
+      .update(webhookEvents)
+      .set({ processedAt: new Date(), error: null })
+      .where(eq(webhookEvents.id, id));
+  }
+}
+
+const MAX_WEBHOOK_ATTEMPTS = 8;
+
+/** Eventos recebidos, ainda não processados e abaixo do teto de tentativas. */
+export async function listUnprocessedWebhookEvents(limit = 50) {
+  return db
+    .select()
+    .from(webhookEvents)
+    .where(
+      and(
+        isNull(webhookEvents.processedAt),
+        sql`${webhookEvents.attempts} < ${MAX_WEBHOOK_ATTEMPTS}`
+      )
+    )
+    .orderBy(webhookEvents.createdAt)
+    .limit(limit);
+}
+
+// --- assinaturas ---
+
+export async function createSubscriptionRow(data: typeof subscriptions.$inferInsert) {
+  const rows = await db.insert(subscriptions).values(data).returning();
+  return rows[0];
+}
+
+export async function getSubscriptionByGatewayId(gatewaySubscriptionId: string) {
+  const rows = await db
+    .select()
+    .from(subscriptions)
+    .where(eq(subscriptions.gatewaySubscriptionId, gatewaySubscriptionId));
+  return rows[0];
+}
+
+export async function updateSubscriptionRow(
+  id: number,
+  data: Partial<typeof subscriptions.$inferInsert>
+) {
+  const rows = await db
+    .update(subscriptions)
+    .set({ ...data, updatedAt: new Date() })
+    .where(eq(subscriptions.id, id))
+    .returning();
+  return rows[0];
+}
+
+export async function listSubscriptionsAdmin() {
+  return db.select().from(subscriptions).orderBy(desc(subscriptions.createdAt));
+}
+
+// --- pagamento do pedido ---
+
+export async function updateOrderPayment(
+  orderId: number,
+  data: Partial<
+    Pick<
+      typeof orders.$inferInsert,
+      "paymentStatus" | "paidAt" | "status" | "trackingCode" | "labelUrl"
+    >
+  >
+) {
+  const rows = await db.update(orders).set(data).where(eq(orders.id, orderId)).returning();
+  return rows[0];
+}
+
+export async function getOrderByNumber(orderNumber: string) {
+  const rows = await db.select().from(orders).where(eq(orders.orderNumber, orderNumber));
+  return rows[0];
+}
+
+/** Atualiza frete e total do pedido (usado ao recomputar o frete no pagamento). */
+export async function updateOrderTotals(orderId: number, shippingAmount: string, total: string) {
+  await db
+    .update(orders)
+    .set({ shippingAmount, total })
+    .where(eq(orders.id, orderId));
 }

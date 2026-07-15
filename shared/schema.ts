@@ -85,6 +85,13 @@ export const orders = pgTable("orders", {
   shippingAmount: numeric("shipping_amount", { precision: 10, scale: 2 }).notNull().default("0"),
   total: numeric("total", { precision: 10, scale: 2 }).notNull(),
   status: text("status").notNull().default("recebido"),
+  // Pagamento online (Asaas) — null = pedido fechado via WhatsApp, sem cobrança online
+  paymentStatus: text("payment_status"), // pending|paid|overdue|refunded|partially_refunded|cancelled|chargeback
+  paidAt: timestamp("paid_at"),
+  subscriptionId: integer("subscription_id"), // pedido materializado por uma assinatura
+  // Envio (preenchidos pela auto-etiqueta SmartEnvios ou manualmente)
+  trackingCode: text("tracking_code"),
+  labelUrl: text("label_url"),
   createdAt: timestamp("created_at").notNull().defaultNow(),
 });
 
@@ -117,6 +124,77 @@ export const storeSettings = pgTable("store_settings", {
   updatedAt: timestamp("updated_at").notNull().defaultNow(),
 });
 
+// Transações de pagamento online (gateway-agnóstico; nome espelha o whitelabel
+// para facilitar o porte futuro). Piloto: gateway = "asaas".
+export const paymentTransactions = pgTable("payment_transactions", {
+  id: serial("id").primaryKey(),
+  orderId: integer("order_id"), // null para links/assinaturas sem pedido de origem
+  gateway: text("gateway").notNull().default("asaas"),
+  gatewayPaymentId: text("gateway_payment_id").notNull().unique(), // pay_xxx
+  gatewayCustomerId: text("gateway_customer_id"), // cus_xxx
+  method: text("method").notNull(), // PIX | BOLETO | CREDIT_CARD
+  status: text("status").notNull().default("PENDING"), // espelho do status Asaas
+  value: numeric("value", { precision: 10, scale: 2 }).notNull(),
+  netValue: numeric("net_value", { precision: 10, scale: 2 }),
+  dueDate: text("due_date"), // YYYY-MM-DD
+  invoiceUrl: text("invoice_url"),
+  bankSlipUrl: text("bank_slip_url"),
+  pixPayload: text("pix_payload"), // copia-e-cola
+  pixExpiration: text("pix_expiration"),
+  installmentCount: integer("installment_count"),
+  // Marca (atômica) de que os efeitos da transição "para pago" — materializar
+  // pedido de assinatura, auto-etiqueta — já foram aplicados. Garante que
+  // webhook e poller concorrentes NÃO dupliquem os efeitos.
+  paidEffectsAt: timestamp("paid_effects_at"),
+  rawResponse: jsonb("raw_response"),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+  updatedAt: timestamp("updated_at").notNull().defaultNow(),
+});
+
+// Eventos de webhook recebidos — o eventId único garante idempotência
+// (entrega do Asaas é at-least-once; duplicatas são ignoradas).
+export const webhookEvents = pgTable("webhook_events", {
+  id: serial("id").primaryKey(),
+  source: text("source").notNull().default("asaas"),
+  eventId: text("event_id").notNull().unique(), // evt_xxx
+  eventType: text("event_type").notNull(), // PAYMENT_CONFIRMED etc.
+  gatewayPaymentId: text("gateway_payment_id"),
+  payload: jsonb("payload").notNull(),
+  processedAt: timestamp("processed_at"),
+  attempts: integer("attempts").notNull().default(0), // tentativas de processamento
+  error: text("error"),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+});
+
+// Assinaturas ("assine e economize") — espelho local da assinatura Asaas com
+// snapshot dos itens/endereço para materializar pedidos a cada ciclo pago.
+export const subscriptions = pgTable("subscriptions", {
+  id: serial("id").primaryKey(),
+  gatewaySubscriptionId: text("gateway_subscription_id").notNull().unique(), // sub_xxx
+  gatewayCustomerId: text("gateway_customer_id").notNull(), // cus_xxx
+  customerName: text("customer_name").notNull(),
+  customerEmail: text("customer_email"),
+  customerPhone: text("customer_phone").notNull(),
+  customerCpfCnpj: text("customer_cpf_cnpj"),
+  shippingCep: text("shipping_cep").notNull(),
+  shippingAddress: text("shipping_address").notNull(),
+  shippingNumber: text("shipping_number").notNull(),
+  shippingComplement: text("shipping_complement"),
+  shippingDistrict: text("shipping_district").notNull(),
+  shippingCity: text("shipping_city").notNull(),
+  shippingState: text("shipping_state").notNull(),
+  billingType: text("billing_type").notNull(), // PIX | BOLETO | CREDIT_CARD
+  cycle: text("cycle").notNull().default("MONTHLY"),
+  value: numeric("value", { precision: 10, scale: 2 }).notNull(),
+  shippingAmount: numeric("shipping_amount", { precision: 10, scale: 2 }).notNull().default("0"),
+  shippingService: text("shipping_service"),
+  status: text("status").notNull().default("ACTIVE"), // ACTIVE | INACTIVE | CANCELLED
+  itemsSnapshot: jsonb("items_snapshot").notNull(), // [{productSlug, productName, quantity, unitPrice, totalPrice}]
+  nextDueDate: text("next_due_date"), // YYYY-MM-DD
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+  updatedAt: timestamp("updated_at").notNull().defaultNow(),
+});
+
 export const insertProductSchema = createInsertSchema(products).omit({
   id: true,
   createdAt: true,
@@ -139,6 +217,10 @@ export const insertAdminUserSchema = createInsertSchema(adminUsers).omit({
   passwordHash: true,
   createdAt: true,
 });
+
+export type PaymentTransaction = typeof paymentTransactions.$inferSelect;
+export type WebhookEventRow = typeof webhookEvents.$inferSelect;
+export type SubscriptionRow = typeof subscriptions.$inferSelect;
 
 export type AdminUser = typeof adminUsers.$inferSelect;
 export type Category = typeof categories.$inferSelect;

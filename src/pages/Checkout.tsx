@@ -1,9 +1,10 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Link } from "wouter";
 import { useTranslation } from "react-i18next";
 import {
   ArrowLeft,
   Check,
+  CreditCard,
   Loader2,
   MessageCircle,
   ShoppingBag,
@@ -13,6 +14,13 @@ import type { Lang } from "@/i18n";
 import { getPackage, tp, WHATSAPP_NUMBER } from "@/data/catalog";
 import { useCart } from "@/context/CartContext";
 import { brl, cn } from "@/lib/utils";
+import PaymentPanel from "@/components/checkout/PaymentPanel";
+
+interface PaymentConfig {
+  enabled: boolean;
+  mock: boolean;
+  maxInstallments: number;
+}
 
 interface ShipOption {
   id: string;
@@ -58,6 +66,22 @@ export default function Checkout() {
   const [form, setForm] = useState<Form>(EMPTY);
   const [touched, setTouched] = useState(false);
   const [sent, setSent] = useState(false);
+
+  // pagamento online (Asaas)
+  const [payCfg, setPayCfg] = useState<PaymentConfig | null>(null);
+  const [payStep, setPayStep] = useState<null | {
+    orderNumber: string;
+    total: number;
+    customer: { name: string; phone: string; email: string };
+  }>(null);
+  const [payLoading, setPayLoading] = useState(false);
+
+  useEffect(() => {
+    fetch("/api/payments/config")
+      .then((r) => r.json())
+      .then(setPayCfg)
+      .catch(() => setPayCfg(null));
+  }, []);
 
   // frete
   const [shipOptions, setShipOptions] = useState<ShipOption[] | null>(null);
@@ -123,6 +147,25 @@ export default function Checkout() {
     );
   }
 
+  // Passo de pagamento online (após criar o pedido)
+  if (payStep) {
+    return (
+      <div className="min-h-screen bg-pf-cream pb-20 pt-24 md:pt-28">
+        <div className="container-pf mx-auto max-w-lg">
+          <h1 className="mb-6 font-display text-3xl font-semibold text-pf-green-900">
+            {lang === "pt" ? "Finalizar pagamento" : "Complete payment"}
+          </h1>
+          <PaymentPanel
+            orderNumber={payStep.orderNumber}
+            total={payStep.total}
+            customer={payStep.customer}
+            maxInstallments={payCfg?.maxInstallments ?? 12}
+          />
+        </div>
+      </div>
+    );
+  }
+
   if (lines.length === 0) {
     return (
       <div className="flex min-h-[70vh] flex-col items-center justify-center gap-5 bg-pf-cream px-4 pt-24 text-center">
@@ -177,6 +220,61 @@ export default function Checkout() {
     }
   };
 
+  const buildOrderPayload = () => ({
+    customerName: form.name,
+    customerEmail: form.email || null,
+    customerPhone: form.phone,
+    shippingCep: form.cep,
+    shippingAddress: form.address,
+    shippingNumber: form.number,
+    shippingComplement: form.complement || null,
+    shippingDistrict: form.district,
+    shippingCity: form.city,
+    shippingState: form.state,
+    notes: form.notes || null,
+    subtotal: subtotal.toFixed(2),
+    shippingService: shipSel?.service ?? null,
+    shippingAmount: shippingCost.toFixed(2),
+    total: total.toFixed(2),
+    items: lines.map((l) => ({
+      productSlug: l.product.slug,
+      productName: tp(l.product, lang).name,
+      quantity: l.quantity,
+      unitPrice: l.product.price.toFixed(2),
+      totalPrice: l.lineTotal.toFixed(2),
+    })),
+  });
+
+  // Pagar online: cria o pedido no backend, obtém o número e vai pro passo de pagamento
+  const payOnline = async () => {
+    setTouched(true);
+    if (missing.length > 0) {
+      window.scrollTo({ top: 0, behavior: "smooth" });
+      return;
+    }
+    setPayLoading(true);
+    try {
+      const res = await fetch("/api/orders", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(buildOrderPayload()),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "Erro ao criar pedido");
+      clear();
+      setPayStep({
+        orderNumber: data.orderNumber,
+        total,
+        customer: { name: form.name, phone: form.phone, email: form.email },
+      });
+      window.scrollTo({ top: 0, behavior: "smooth" });
+    } catch {
+      window.alert("Não foi possível iniciar o pagamento. Tente novamente.");
+    } finally {
+      setPayLoading(false);
+    }
+  };
+
   const submit = (e: React.FormEvent) => {
     e.preventDefault();
     setTouched(true);
@@ -223,30 +321,7 @@ export default function Checkout() {
       method: "POST",
       keepalive: true,
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        customerName: form.name,
-        customerEmail: form.email || null,
-        customerPhone: form.phone,
-        shippingCep: form.cep,
-        shippingAddress: form.address,
-        shippingNumber: form.number,
-        shippingComplement: form.complement || null,
-        shippingDistrict: form.district,
-        shippingCity: form.city,
-        shippingState: form.state,
-        notes: form.notes || null,
-        subtotal: subtotal.toFixed(2),
-        shippingService: shipSel?.service ?? null,
-        shippingAmount: shippingCost.toFixed(2),
-        total: total.toFixed(2),
-        items: lines.map((l) => ({
-          productSlug: l.product.slug,
-          productName: tp(l.product, lang).name,
-          quantity: l.quantity,
-          unitPrice: l.product.price.toFixed(2),
-          totalPrice: l.lineTotal.toFixed(2),
-        })),
-      }),
+      body: JSON.stringify(buildOrderPayload()),
     }).catch(() => {});
 
     const url = `https://wa.me/${WHATSAPP_NUMBER}?text=${encodeURIComponent(msg)}`;
@@ -509,13 +584,41 @@ export default function Checkout() {
                 </div>
               </div>
 
-              <button
-                type="submit"
-                className="mt-5 flex w-full items-center justify-center gap-2 rounded-full bg-pf-green-700 px-6 py-3.5 text-sm font-semibold text-pf-cream transition-colors hover:bg-pf-green-600"
-              >
-                <MessageCircle size={17} />
-                {t("checkout.placeOrder")}
-              </button>
+              {payCfg?.enabled ? (
+                <div className="mt-5 space-y-2.5">
+                  <button
+                    type="button"
+                    onClick={payOnline}
+                    disabled={payLoading}
+                    className="flex w-full items-center justify-center gap-2 rounded-full bg-pf-green-700 px-6 py-3.5 text-sm font-semibold text-pf-cream transition-colors hover:bg-pf-green-600 disabled:opacity-60"
+                  >
+                    {payLoading ? (
+                      <Loader2 size={17} className="animate-spin" />
+                    ) : (
+                      <CreditCard size={17} />
+                    )}
+                    {lang === "pt" ? "Pagar online" : "Pay online"}
+                    <span className="text-xs font-normal text-pf-cream/80">
+                      PIX · {lang === "pt" ? "boleto" : "boleto"} · {lang === "pt" ? "cartão" : "card"}
+                    </span>
+                  </button>
+                  <button
+                    type="submit"
+                    className="flex w-full items-center justify-center gap-2 rounded-full border border-pf-green-700/30 px-6 py-3.5 text-sm font-semibold text-pf-green-700 transition-colors hover:bg-pf-green-900/5"
+                  >
+                    <MessageCircle size={17} />
+                    {lang === "pt" ? "Finalizar pelo WhatsApp" : "Finish via WhatsApp"}
+                  </button>
+                </div>
+              ) : (
+                <button
+                  type="submit"
+                  className="mt-5 flex w-full items-center justify-center gap-2 rounded-full bg-pf-green-700 px-6 py-3.5 text-sm font-semibold text-pf-cream transition-colors hover:bg-pf-green-600"
+                >
+                  <MessageCircle size={17} />
+                  {t("checkout.placeOrder")}
+                </button>
+              )}
               {touched && missing.length > 0 && (
                 <p className="mt-2 text-center text-xs text-pf-clay">
                   {t("checkout.required")}

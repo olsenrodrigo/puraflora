@@ -12,6 +12,10 @@ import { adminCategoriesRouter } from "./routes/admin-categories";
 import { adminUsersRouter } from "./routes/admin-users";
 import { adminSettingsRouter } from "./routes/admin-settings";
 import { adminReportsRouter } from "./routes/admin-reports";
+import { paymentsRouter } from "./routes/payments";
+import { webhooksRouter } from "./routes/webhooks";
+import { adminPaymentsRouter } from "./routes/admin-payments";
+import { getAsaasConfig, startReconciler } from "./asaas-integration";
 import { hashPassword } from "./auth";
 import { countAdmins, createAdminUser } from "./storage";
 
@@ -34,6 +38,9 @@ async function seedDefaultAdmin() {
 
 async function main() {
   const app = express();
+  // Um único proxy reverso na frente (nginx/VPS). Faz req.ip refletir o cliente
+  // real sem aceitar X-Forwarded-For falsificado direto da internet.
+  app.set("trust proxy", 1);
   app.use(express.json());
   app.use(express.urlencoded({ extended: true }));
 
@@ -50,9 +57,13 @@ async function main() {
   app.use("/api/admin/users", adminUsersRouter());
   app.use("/api/admin/settings", adminSettingsRouter());
   app.use("/api/admin/reports", adminReportsRouter());
+  app.use("/api/admin/payments", adminPaymentsRouter());
+  app.use("/api/payments", paymentsRouter());
+  app.use("/api/webhooks", webhooksRouter());
   app.use("/api/orders", ordersRouter());
 
   await seedDefaultAdmin();
+  startReconciler(getAsaasConfig());
 
   if (process.env.NODE_ENV === "production") {
     const { serveStatic } = await import("./static");

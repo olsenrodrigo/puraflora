@@ -1,8 +1,8 @@
 import { useEffect, useState } from "react";
 import { Link } from "wouter";
-import { CreditCard, Info, Truck } from "lucide-react";
+import { CreditCard, Info, Truck, Wallet } from "lucide-react";
 import { useAdminFetch } from "@/context/AdminAuthContext";
-import { cn } from "@/lib/utils";
+import { brl, cn } from "@/lib/utils";
 
 interface ShippingStatus {
   mock: boolean;
@@ -12,9 +12,21 @@ interface ShippingStatus {
   discountPercent: number;
 }
 
+interface AsaasStatus {
+  mock: boolean;
+  env: string;
+  webhookUrl: string | null;
+  webhookConfigured: boolean;
+  webhookInterrupted: boolean;
+  autoLabel: boolean;
+  reconcileMinutes: number;
+}
+
 export default function AdminIntegrations() {
   const adminFetch = useAdminFetch();
   const [shipping, setShipping] = useState<ShippingStatus | null>(null);
+  const [asaas, setAsaas] = useState<AsaasStatus | null>(null);
+  const [balance, setBalance] = useState<number | null>(null);
   const [hasPaymentToken, setHasPaymentToken] = useState(false);
   const [loading, setLoading] = useState(true);
 
@@ -22,12 +34,18 @@ export default function AdminIntegrations() {
     Promise.all([
       fetch("/api/shipping/config").then((r) => r.json()),
       adminFetch("/api/admin/settings").then((r) => r.json()),
+      adminFetch("/api/admin/payments/status").then((r) => (r.ok ? r.json() : null)),
     ])
-      .then(([shippingData, settingsData]) => {
+      .then(([shippingData, settingsData, asaasData]) => {
         setShipping(shippingData);
         setHasPaymentToken(!!settingsData.hasToken);
+        setAsaas(asaasData);
       })
       .finally(() => setLoading(false));
+    adminFetch("/api/admin/payments/balance")
+      .then((r) => (r.ok ? r.json() : null))
+      .then((d) => d && setBalance(d.balance))
+      .catch(() => {});
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
@@ -86,7 +104,58 @@ export default function AdminIntegrations() {
           </p>
         </div>
 
-        {/* Pagamento */}
+        {/* Asaas — gateway ativo */}
+        <div className="rounded-2xl border border-pf-border bg-white p-6">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <span className="flex h-10 w-10 items-center justify-center rounded-full bg-pf-green-100 text-pf-green-700">
+                <Wallet size={18} />
+              </span>
+              <div>
+                <h2 className="font-display text-lg font-semibold text-pf-green-900">Asaas</h2>
+                <p className="text-sm text-pf-ink-soft">
+                  Gateway de pagamento — PIX, boleto, cartão, assinaturas
+                </p>
+              </div>
+            </div>
+            <span
+              className={cn(
+                "rounded-full px-3 py-1 text-xs font-semibold",
+                asaas?.mock ? "bg-pf-gold-500/20 text-pf-gold-600" : "bg-pf-green-100 text-pf-green-700"
+              )}
+            >
+              {asaas?.mock ? "Modo simulação" : `Conectado (${asaas?.env ?? "?"})`}
+            </span>
+          </div>
+          <dl className="mt-4 grid grid-cols-2 gap-3 text-sm sm:grid-cols-3">
+            <div>
+              <dt className="text-xs uppercase tracking-wide text-pf-ink-soft">Saldo</dt>
+              <dd className="text-pf-ink">{balance != null ? brl(balance) : "—"}</dd>
+            </div>
+            <div>
+              <dt className="text-xs uppercase tracking-wide text-pf-ink-soft">Webhook</dt>
+              <dd className={asaas?.webhookInterrupted ? "text-pf-clay" : "text-pf-ink"}>
+                {asaas?.webhookInterrupted
+                  ? "Interrompido"
+                  : asaas?.webhookConfigured
+                    ? "Ativo"
+                    : "Não registrado"}
+              </dd>
+            </div>
+            <div>
+              <dt className="text-xs uppercase tracking-wide text-pf-ink-soft">Auto-etiqueta</dt>
+              <dd className="text-pf-ink">{asaas?.autoLabel ? "Ligada" : "Desligada"}</dd>
+            </div>
+          </dl>
+          <p className="mt-4 flex items-start gap-2 rounded-xl bg-pf-cream-100 p-3 text-xs text-pf-ink-soft">
+            <Info size={14} className="mt-0.5 shrink-0" />
+            Conector também disponível como servidor MCP (
+            <code className="font-mono">server/asaas/mcp.ts</code>) para agentes de IA. A chave da
+            API fica só no <code className="font-mono">.env</code>.
+          </p>
+        </div>
+
+        {/* Mercado Pago — config-only (legado) */}
         <div className="rounded-2xl border border-pf-border bg-white p-6">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
@@ -95,7 +164,7 @@ export default function AdminIntegrations() {
               </span>
               <div>
                 <h2 className="font-display text-lg font-semibold text-pf-green-900">Mercado Pago</h2>
-                <p className="text-sm text-pf-ink-soft">Configuração de pagamento (PIX, cartão, boleto)</p>
+                <p className="text-sm text-pf-ink-soft">Configuração guardada (gateway alternativo)</p>
               </div>
             </div>
             <span

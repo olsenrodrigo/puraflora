@@ -13,12 +13,8 @@ import {
   Truck,
 } from "lucide-react";
 import type { Lang } from "@/i18n";
-import {
-  categoryName,
-  getProduct,
-  PRODUCTS,
-  tp,
-} from "@/data/catalog";
+import { categoryName, tp } from "@/data/catalog";
+import { useProducts } from "@/context/ProductsContext";
 import { useCart } from "@/context/CartContext";
 import { Rating } from "@/components/ui/Rating";
 import ProductCard from "@/components/store/ProductCard";
@@ -31,10 +27,11 @@ export default function ProductDetail() {
   const params = useParams();
   const [, setLocation] = useLocation();
   const { add, open } = useCart();
+  const { products: PRODUCTS } = useProducts();
   const [qty, setQty] = useState(1);
   const [added, setAdded] = useState(false);
 
-  const product = getProduct(params.slug ?? "");
+  const product = PRODUCTS.find((p) => p.slug === (params.slug ?? ""));
 
   useEffect(() => {
     setQty(1);

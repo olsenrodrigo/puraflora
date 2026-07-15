@@ -6,15 +6,23 @@ WORKDIR /app
 COPY package*.json ./
 RUN npm ci
 
-# copia o código e gera o build de produção
+# copia o código e gera o build de produção (front-end + servidor)
 COPY . .
 # As imagens WebP dos produtos/marca já estão versionadas em public/;
 # o passo prebuild apenas as regenera se as artes-fonte existirem (não é o caso no build).
 RUN npm run build
 
-# ─── Serve (nginx) ───────────────────────────────────────────────────────────
-FROM nginx:alpine AS serve
-COPY nginx.conf /etc/nginx/conf.d/default.conf
-COPY --from=build /app/dist /usr/share/nginx/html
-EXPOSE 80
-CMD ["nginx", "-g", "daemon off;"]
+# ─── Runtime (Node único: API + front-end estático) ─────────────────────────
+FROM node:22-alpine AS runtime
+WORKDIR /app
+ENV NODE_ENV=production
+
+COPY package*.json ./
+RUN npm ci --omit=dev
+
+COPY --from=build /app/dist ./dist
+COPY --from=build /app/dist-server ./dist-server
+RUN mkdir -p uploads/products
+
+EXPOSE 3000
+CMD ["node", "dist-server/index.js"]

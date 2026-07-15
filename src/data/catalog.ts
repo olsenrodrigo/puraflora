@@ -24,25 +24,28 @@ export interface Product {
   badge?: "bestSeller" | "new";
   hero?: { order: number; accent: string };
   i18n: Record<Lang, ProductText>;
+  costPrice?: number; // opcional, usado só no admin p/ calcular margem
+  // Dimensões de envio — presentes quando o produto vem do backend (admin);
+  // produtos legados (seed inicial) usam o mapa PACKAGES abaixo como fallback.
+  weightG?: number;
+  lengthCm?: number;
+  widthCm?: number;
+  heightCm?: number;
 }
 
-export type CategoryId =
-  | "imunidade"
-  | "beleza"
-  | "energia"
-  | "equilibrio"
-  | "detox"
-  | "saude";
+// Antes era uma união fechada de 6 valores; agora categorias são dinâmicas
+// (CRUD no admin), então o id é uma string opaca vinda do banco.
+export type CategoryId = string;
 
 export interface Category {
   id: CategoryId;
   name: Record<Lang, string>;
   blurb: Record<Lang, string>;
-  icon: "shield" | "sparkles" | "flame" | "leaf" | "droplets" | "heart";
+  icon: string; // ícone lucide-react (ver ICONS em Categories.tsx, com fallback)
   accent: string;
 }
 
-export const CATEGORIES: Category[] = [
+export const STATIC_CATEGORIES: Category[] = [
   {
     id: "imunidade",
     icon: "shield",
@@ -105,7 +108,7 @@ export const CATEGORIES: Category[] = [
   },
 ];
 
-export const PRODUCTS: Product[] = [
+export const STATIC_PRODUCTS: Product[] = [
   {
     id: 1,
     slug: "dermemax-1000",
@@ -1112,25 +1115,43 @@ export const PRODUCTS: Product[] = [
   },
 ];
 
+// ── Catálogo ao vivo ─────────────────────────────────────────────────────
+// PRODUCTS/CATEGORIES começam com os dados estáticos (zero flash de loading)
+// e são substituídos pelos dados reais do backend assim que a busca a
+// /api/store/* resolve (ver ProductsContext). Todo o resto do app continua
+// lendo PRODUCTS/CATEGORIES/tp/getProduct/etc. normalmente — nenhuma outra
+// tela precisa saber que a fonte dos dados mudou.
+export let PRODUCTS: Product[] = STATIC_PRODUCTS;
+export let CATEGORIES: Category[] = STATIC_CATEGORIES;
+export let HERO_PRODUCTS: Product[] = computeHeroProducts(STATIC_PRODUCTS);
+export let FEATURED_PRODUCTS: Product[] = STATIC_PRODUCTS.filter((p) => p.featured);
+
+function computeHeroProducts(products: Product[]): Product[] {
+  return products
+    .filter((p) => p.hero)
+    .sort((a, b) => (a.hero!.order ?? 0) - (b.hero!.order ?? 0));
+}
+
+export function setLiveCatalog(products: Product[], categories: Category[]) {
+  PRODUCTS = products;
+  CATEGORIES = categories;
+  HERO_PRODUCTS = computeHeroProducts(products);
+  FEATURED_PRODUCTS = products.filter((p) => p.featured);
+}
+
 // ── Selectors ──────────────────────────────────────────────────────────────
 export function tp(p: Product, lang: Lang): ProductText {
   return p.i18n[lang] ?? p.i18n.pt;
 }
 
 export function categoryName(id: CategoryId, lang: Lang): string {
-  const c = CATEGORIES.find((c) => c.id === id);
+  const c = CATEGORIES.find((c) => c.id === id) ?? STATIC_CATEGORIES.find((c) => c.id === id);
   return c ? c.name[lang] ?? c.name.pt : id;
 }
 
 export function getProduct(slug: string): Product | undefined {
   return PRODUCTS.find((p) => p.slug === slug);
 }
-
-export const HERO_PRODUCTS = PRODUCTS.filter((p) => p.hero).sort(
-  (a, b) => (a.hero!.order ?? 0) - (b.hero!.order ?? 0)
-);
-
-export const FEATURED_PRODUCTS = PRODUCTS.filter((p) => p.featured);
 
 export const FREE_SHIPPING_THRESHOLD = 199;
 export const WHATSAPP_NUMBER = "5511999999999"; // placeholder — substituir pelo número real
@@ -1143,6 +1164,9 @@ export interface PackageDims {
   heightCm: number;
 }
 
+// Fallback para os 19 produtos do seed inicial (caso a API ainda não tenha
+// respondido, ou o produto não traga dims próprias). Produtos criados via
+// admin trazem weightG/lengthCm/widthCm/heightCm no próprio registro.
 export const PACKAGES: Record<string, PackageDims> = {
   "dermemax-1000": { weightG: 380, lengthCm: 12, widthCm: 7, heightCm: 7 },
   "uc-flex-ii": { weightG: 260, lengthCm: 11, widthCm: 6, heightCm: 6 },
@@ -1166,6 +1190,10 @@ export const PACKAGES: Record<string, PackageDims> = {
 };
 
 export function getPackage(slug: string): PackageDims {
+  const p = getProduct(slug);
+  if (p && p.weightG && p.lengthCm && p.widthCm && p.heightCm) {
+    return { weightG: p.weightG, lengthCm: p.lengthCm, widthCm: p.widthCm, heightCm: p.heightCm };
+  }
   return (
     PACKAGES[slug] ?? { weightG: 300, lengthCm: 12, widthCm: 8, heightCm: 8 }
   );

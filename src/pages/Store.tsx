@@ -3,13 +3,8 @@ import { useSearch } from "wouter";
 import { useTranslation } from "react-i18next";
 import { Search, SlidersHorizontal, X } from "lucide-react";
 import type { Lang } from "@/i18n";
-import {
-  CATEGORIES,
-  PRODUCTS,
-  tp,
-  type CategoryId,
-  type Product,
-} from "@/data/catalog";
+import { tp, type CategoryId, type Product } from "@/data/catalog";
+import { useProducts } from "@/context/ProductsContext";
 import ProductCard from "@/components/store/ProductCard";
 import { Reveal } from "@/components/ui/Reveal";
 import { cn } from "@/lib/utils";
@@ -20,6 +15,7 @@ export default function Store() {
   const { t, i18n } = useTranslation();
   const lang = (i18n.language?.split("-")[0] as Lang) || "pt";
   const search = useSearch();
+  const { products: PRODUCTS, categories: CATEGORIES } = useProducts();
 
   const initialCat = useMemo(() => {
     const p = new URLSearchParams(search).get("cat");

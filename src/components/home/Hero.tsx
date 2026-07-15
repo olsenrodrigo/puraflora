@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { Link } from "wouter";
 import { useTranslation } from "react-i18next";
 import useEmblaCarousel from "embla-carousel-react";
@@ -12,7 +12,8 @@ import {
   Sprout,
 } from "lucide-react";
 import type { Lang } from "@/i18n";
-import { HERO_PRODUCTS, tp, categoryName } from "@/data/catalog";
+import { tp, categoryName } from "@/data/catalog";
+import { useProducts } from "@/context/ProductsContext";
 import { useCart } from "@/context/CartContext";
 import { Rating } from "@/components/ui/Rating";
 import { brl } from "@/lib/utils";
@@ -21,6 +22,14 @@ export default function Hero() {
   const { t, i18n } = useTranslation();
   const lang = (i18n.language?.split("-")[0] as Lang) || "pt";
   const { add, open } = useCart();
+  const { products } = useProducts();
+  const HERO_PRODUCTS = useMemo(
+    () =>
+      products
+        .filter((p) => p.hero)
+        .sort((a, b) => (a.hero!.order ?? 0) - (b.hero!.order ?? 0)),
+    [products]
+  );
 
   const [emblaRef, emblaApi] = useEmblaCarousel({ loop: true }, [
     Autoplay({ delay: 5500, stopOnInteraction: false }),

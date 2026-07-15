@@ -4,7 +4,12 @@ node_modules/
 # build output
 dist/
 dist-ssr/
+dist-server/
 *.local
+
+# uploads de produtos (admin) — não versionados, persistidos via volume Docker
+uploads/*
+!uploads/.gitkeep
 
 # vite / cache
 .vite/

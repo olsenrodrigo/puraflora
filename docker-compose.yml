@@ -1,8 +1,54 @@
 services:
+  db:
+    image: postgres:16-alpine
+    container_name: puraflora-db
+    environment:
+      POSTGRES_DB: puraflora
+      POSTGRES_USER: puraflora
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-puraflora}
+    volumes:
+      - puraflora_db:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U puraflora"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+    restart: unless-stopped
+
   web:
     build: .
     image: puraflora-web
     container_name: puraflora
+    env_file:
+      - .env
+    environment:
+      DATABASE_URL: postgresql://puraflora:${POSTGRES_PASSWORD:-puraflora}@db:5432/puraflora
+      PORT: 3000
     ports:
-      - "8080:80"
+      - "8080:3000"
+    volumes:
+      - puraflora_uploads:/app/uploads
+    depends_on:
+      db:
+        condition: service_healthy
     restart: unless-stopped
+
+  # Uso único, para aplicar o schema e semear produtos/admin:
+  #   docker compose run --rm migrate npm run db:push
+  #   docker compose run --rm migrate npm run db:seed
+  # (usa o estágio "build", que ainda tem drizzle-kit/tsx; a imagem de
+  # produção do "web" não carrega devDependencies.)
+  migrate:
+    build:
+      context: .
+      target: build
+    profiles: ["tools"]
+    environment:
+      DATABASE_URL: postgresql://puraflora:${POSTGRES_PASSWORD:-puraflora}@db:5432/puraflora
+    depends_on:
+      db:
+        condition: service_healthy
+
+volumes:
+  puraflora_db:
+  puraflora_uploads:

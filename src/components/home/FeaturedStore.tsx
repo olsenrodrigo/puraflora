@@ -1,12 +1,14 @@
 import { Link } from "wouter";
 import { useTranslation } from "react-i18next";
 import { ArrowRight, Store } from "lucide-react";
-import { FEATURED_PRODUCTS } from "@/data/catalog";
+import { useProducts } from "@/context/ProductsContext";
 import ProductCard from "@/components/store/ProductCard";
 import { Eyebrow, Reveal } from "@/components/ui/Reveal";
 
 export default function FeaturedStore() {
   const { t } = useTranslation();
+  const { products } = useProducts();
+  const FEATURED_PRODUCTS = products.filter((p) => p.featured);
 
   return (
     <section id="store" className="bg-pf-cream-100 py-20 md:py-28">

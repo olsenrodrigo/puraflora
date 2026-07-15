@@ -216,6 +216,39 @@ export default function Checkout() {
       .filter(Boolean)
       .join("\n");
 
+    // Registra o pedido no backend (para aparecer no admin) sem bloquear o
+    // fluxo do WhatsApp — se a chamada falhar, a experiência do usuário
+    // continua idêntica.
+    fetch("/api/orders", {
+      method: "POST",
+      keepalive: true,
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        customerName: form.name,
+        customerEmail: form.email || null,
+        customerPhone: form.phone,
+        shippingCep: form.cep,
+        shippingAddress: form.address,
+        shippingNumber: form.number,
+        shippingComplement: form.complement || null,
+        shippingDistrict: form.district,
+        shippingCity: form.city,
+        shippingState: form.state,
+        notes: form.notes || null,
+        subtotal: subtotal.toFixed(2),
+        shippingService: shipSel?.service ?? null,
+        shippingAmount: shippingCost.toFixed(2),
+        total: total.toFixed(2),
+        items: lines.map((l) => ({
+          productSlug: l.product.slug,
+          productName: tp(l.product, lang).name,
+          quantity: l.quantity,
+          unitPrice: l.product.price.toFixed(2),
+          totalPrice: l.lineTotal.toFixed(2),
+        })),
+      }),
+    }).catch(() => {});
+
     const url = `https://wa.me/${WHATSAPP_NUMBER}?text=${encodeURIComponent(msg)}`;
     window.open(url, "_blank");
     clear();

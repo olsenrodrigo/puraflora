@@ -11,7 +11,7 @@ import {
   type LucideIcon,
 } from "lucide-react";
 import type { Lang } from "@/i18n";
-import { CATEGORIES } from "@/data/catalog";
+import { useProducts } from "@/context/ProductsContext";
 import { Eyebrow, Reveal } from "@/components/ui/Reveal";
 
 const ICONS: Record<string, LucideIcon> = {
@@ -26,6 +26,7 @@ const ICONS: Record<string, LucideIcon> = {
 export default function Categories() {
   const { t, i18n } = useTranslation();
   const lang = (i18n.language?.split("-")[0] as Lang) || "pt";
+  const { categories: CATEGORIES } = useProducts();
 
   return (
     <section id="categories" className="bg-pf-cream-100 py-20 md:py-28">

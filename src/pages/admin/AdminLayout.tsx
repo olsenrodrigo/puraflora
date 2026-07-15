@@ -1,7 +1,8 @@
-import { useEffect, type ReactNode } from "react";
+import { useEffect, useState, type ReactNode } from "react";
 import { Link, useLocation } from "wouter";
 import {
   LogOut,
+  Menu,
   Package,
   ShoppingBag,
   Star,
@@ -11,26 +12,67 @@ import {
   Plug,
   Users,
   Repeat,
+  X,
+  type LucideIcon,
 } from "lucide-react";
 import Logo from "@/components/brand/Logo";
 import { useAdminAuth } from "@/context/AdminAuthContext";
 import { cn } from "@/lib/utils";
 
-const NAV = [
-  { href: "/admin/produtos", label: "Produtos", icon: Package, roles: ["admin", "financeiro", "operacao"] },
-  { href: "/admin/destaques", label: "Destaques", icon: Star, roles: ["admin", "operacao"] },
-  { href: "/admin/categorias", label: "Categorias", icon: Tags, roles: ["admin", "operacao"] },
-  { href: "/admin/pedidos", label: "Pedidos", icon: ShoppingBag, roles: ["admin", "financeiro", "operacao"] },
-  { href: "/admin/assinaturas", label: "Assinaturas", icon: Repeat, roles: ["admin", "financeiro"] },
-  { href: "/admin/relatorios", label: "Relatórios", icon: BarChart3, roles: ["admin", "financeiro"] },
-  { href: "/admin/configuracoes", label: "Configurações", icon: Settings, roles: ["admin"] },
-  { href: "/admin/integracoes", label: "Integrações", icon: Plug, roles: ["admin", "financeiro"] },
-  { href: "/admin/usuarios", label: "Usuários", icon: Users, roles: ["admin"] },
+interface NavItem {
+  href: string;
+  label: string;
+  icon: LucideIcon;
+  roles: string[];
+}
+
+interface NavSection {
+  title: string;
+  items: NavItem[];
+}
+
+const NAV: NavSection[] = [
+  {
+    title: "Catálogo",
+    items: [
+      { href: "/admin/produtos", label: "Produtos", icon: Package, roles: ["admin", "financeiro", "operacao"] },
+      { href: "/admin/destaques", label: "Destaques", icon: Star, roles: ["admin", "operacao"] },
+      { href: "/admin/categorias", label: "Categorias", icon: Tags, roles: ["admin", "operacao"] },
+    ],
+  },
+  {
+    title: "Vendas",
+    items: [
+      { href: "/admin/pedidos", label: "Pedidos", icon: ShoppingBag, roles: ["admin", "financeiro", "operacao"] },
+      { href: "/admin/assinaturas", label: "Assinaturas", icon: Repeat, roles: ["admin", "financeiro"] },
+    ],
+  },
+  {
+    title: "Financeiro",
+    items: [
+      { href: "/admin/relatorios", label: "Relatórios", icon: BarChart3, roles: ["admin", "financeiro"] },
+      { href: "/admin/integracoes", label: "Integrações", icon: Plug, roles: ["admin", "financeiro"] },
+    ],
+  },
+  {
+    title: "Sistema",
+    items: [
+      { href: "/admin/configuracoes", label: "Configurações", icon: Settings, roles: ["admin"] },
+      { href: "/admin/usuarios", label: "Usuários", icon: Users, roles: ["admin"] },
+    ],
+  },
 ];
+
+const ROLE_LABELS: Record<string, string> = {
+  admin: "Administrador",
+  financeiro: "Financeiro",
+  operacao: "Operação",
+};
 
 export default function AdminLayout({ children }: { children: ReactNode }) {
   const { isAuthenticated, admin, logout } = useAdminAuth();
   const [location, setLocation] = useLocation();
+  const [mobileOpen, setMobileOpen] = useState(false);
 
   useEffect(() => {
     if (!isAuthenticated) {
@@ -42,48 +84,110 @@ export default function AdminLayout({ children }: { children: ReactNode }) {
     }
   }, [isAuthenticated, admin?.mustChangePassword, setLocation]);
 
+  // fecha a gaveta ao trocar de rota
+  useEffect(() => {
+    setMobileOpen(false);
+  }, [location]);
+
   if (!isAuthenticated || admin?.mustChangePassword) return null;
 
-  const links = NAV.filter((l) => l.roles.includes(admin!.role));
+  const role = admin!.role;
+  const sections = NAV.map((s) => ({
+    ...s,
+    items: s.items.filter((i) => i.roles.includes(role)),
+  })).filter((s) => s.items.length > 0);
 
-  return (
-    <div className="min-h-screen bg-pf-cream-100">
-      <header className="border-b border-pf-border bg-white">
-        <div className="mx-auto flex max-w-6xl flex-wrap items-center justify-between gap-3 px-6 py-3.5">
-          <Link href="/admin/produtos">
-            <Logo className="h-8" />
-          </Link>
-          <nav className="flex flex-wrap items-center gap-1">
-            {links.map((l) => {
+  const sidebar = (
+    <nav className="flex h-full flex-col gap-6 p-4">
+      {sections.map((section) => (
+        <div key={section.title}>
+          <p className="mb-1.5 px-3 text-[11px] font-semibold uppercase tracking-[0.12em] text-pf-ink-soft/60">
+            {section.title}
+          </p>
+          <div className="space-y-0.5">
+            {section.items.map((l) => {
               const active = location.startsWith(l.href);
               return (
                 <Link
                   key={l.href}
                   href={l.href}
                   className={cn(
-                    "flex items-center gap-1.5 whitespace-nowrap rounded-full px-3.5 py-2 text-sm font-semibold transition-colors",
+                    "flex items-center gap-2.5 rounded-xl px-3 py-2.5 text-sm font-semibold transition-colors",
                     active
-                      ? "bg-pf-green-100 text-pf-green-700"
-                      : "text-pf-ink-soft hover:bg-pf-cream-100"
+                      ? "bg-pf-green-700 text-pf-cream"
+                      : "text-pf-ink-soft hover:bg-pf-green-100 hover:text-pf-green-700"
                   )}
                 >
-                  <l.icon size={15} /> {l.label}
+                  <l.icon size={17} className="shrink-0" />
+                  {l.label}
                 </Link>
               );
             })}
-          </nav>
+          </div>
+        </div>
+      ))}
+    </nav>
+  );
+
+  return (
+    <div className="min-h-screen bg-pf-cream-100">
+      {/* Cabeçalho PuraFlora no topo (largura total) */}
+      <header className="sticky top-0 z-30 border-b border-pf-border bg-white">
+        <div className="flex items-center justify-between gap-3 px-4 py-3 sm:px-6">
           <div className="flex items-center gap-3">
-            <span className="hidden text-sm text-pf-ink-soft sm:inline">{admin?.name}</span>
+            <button
+              onClick={() => setMobileOpen((v) => !v)}
+              className="flex h-9 w-9 items-center justify-center rounded-lg border border-pf-border text-pf-ink-soft lg:hidden"
+              aria-label="Menu"
+            >
+              {mobileOpen ? <X size={18} /> : <Menu size={18} />}
+            </button>
+            <Link href="/admin/produtos" className="flex items-center gap-2.5">
+              <Logo className="h-8" />
+              <span className="hidden text-xs font-semibold uppercase tracking-[0.14em] text-pf-ink-soft/60 sm:inline">
+                Painel
+              </span>
+            </Link>
+          </div>
+          <div className="flex items-center gap-3">
+            <div className="hidden text-right sm:block">
+              <p className="text-sm font-semibold text-pf-ink">{admin?.name}</p>
+              <p className="text-xs text-pf-ink-soft">{ROLE_LABELS[role] ?? role}</p>
+            </div>
             <button
               onClick={logout}
               className="flex items-center gap-1.5 rounded-full border border-pf-border px-3.5 py-2 text-sm font-semibold text-pf-ink-soft transition-colors hover:bg-pf-cream-100"
             >
-              <LogOut size={15} /> Sair
+              <LogOut size={15} /> <span className="hidden sm:inline">Sair</span>
             </button>
           </div>
         </div>
       </header>
-      <main className="mx-auto max-w-6xl px-6 py-8">{children}</main>
+
+      <div className="flex">
+        {/* Sidebar fixa à esquerda (desktop) */}
+        <aside className="sticky top-[61px] hidden h-[calc(100vh-61px)] w-60 shrink-0 overflow-y-auto border-r border-pf-border bg-white lg:block">
+          {sidebar}
+        </aside>
+
+        {/* Gaveta lateral (mobile) */}
+        {mobileOpen && (
+          <>
+            <div
+              className="fixed inset-0 top-[57px] z-20 bg-black/30 lg:hidden"
+              onClick={() => setMobileOpen(false)}
+            />
+            <aside className="fixed left-0 top-[57px] z-30 h-[calc(100vh-57px)] w-64 overflow-y-auto border-r border-pf-border bg-white lg:hidden">
+              {sidebar}
+            </aside>
+          </>
+        )}
+
+        {/* Conteúdo */}
+        <main className="min-w-0 flex-1 px-4 py-6 sm:px-8 sm:py-8">
+          <div className="mx-auto max-w-5xl">{children}</div>
+        </main>
+      </div>
     </div>
   );
 }

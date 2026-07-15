@@ -21,6 +21,7 @@ import {
   getOrderById,
   getOrderByNumber,
   ensurePaymentTransaction,
+  updatePaymentTransaction,
   updateOrderPayment,
   updateOrderTotals,
   getTransactionsByOrder,
@@ -200,6 +201,11 @@ export function paymentsRouter(): Router {
           };
           if (input.billingType === "PIX") {
             const qr = await getPixQrCode(cfg, existing.gatewayPaymentId);
+            // persiste o copia-e-cola se ainda não estiver salvo (ex.: 1ª tentativa
+            // morreu ao buscar o QR e a coluna ficou NULL)
+            if (!existing.pixPayload) {
+              await updatePaymentTransaction(existing.id, { pixPayload: qr.payload, pixExpiration: qr.expirationDate });
+            }
             response.pix = { encodedImage: qr.encodedImage, payload: qr.payload, expirationDate: qr.expirationDate };
           } else {
             response.boleto = {
@@ -269,14 +275,19 @@ export function paymentsRouter(): Router {
           : {}),
       });
 
-      await ensurePaymentTransaction({
+      // Persiste a transação PRIMEIRO (antes de buscar o QR): se o QR falhar
+      // (ex.: conta sem chave PIX), a cobrança e a transação já existem e um
+      // retry as reencontra pelo caminho de reaproveitamento — nunca duplica.
+      // `value` é o total REAL do pedido (subtotal + frete recotado); no cartão
+      // parcelado NÃO usar payment.value, que é o valor da PARCELA, não o total.
+      const tx = await ensurePaymentTransaction({
         orderId: order.id,
         gateway: "asaas",
         gatewayPaymentId: payment.id,
         gatewayCustomerId: customer.id,
         method: input.billingType,
         status: "PENDING",
-        value: order.total,
+        value: value.toFixed(2),
         dueDate: payment.dueDate,
         invoiceUrl: payment.invoiceUrl,
         bankSlipUrl: payment.bankSlipUrl,
@@ -300,6 +311,8 @@ export function paymentsRouter(): Router {
       };
       if (input.billingType === "PIX") {
         const qr = await getPixQrCode(cfg, payment.id);
+        // persiste o copia-e-cola (usa a linha retornada — cobre insert e conflito)
+        if (tx) await updatePaymentTransaction(tx.id, { pixPayload: qr.payload, pixExpiration: qr.expirationDate });
         response.pix = { encodedImage: qr.encodedImage, payload: qr.payload, expirationDate: qr.expirationDate };
       } else if (input.billingType === "BOLETO") {
         const boleto = await getBoletoIdentification(cfg, payment.id);

@@ -66,13 +66,13 @@ export default function ProductCard({ product }: { product: Product }) {
         </div>
 
         <div className="mt-auto pt-4">
-          <div className="mb-3 flex items-baseline gap-2">
+          <div className="mb-3 flex flex-wrap items-baseline gap-x-2 gap-y-0.5">
             {hasDiscount && (
-              <span className="text-sm text-pf-ink-soft/70 line-through">
+              <span className="text-xs text-pf-ink-soft/70 line-through md:text-sm">
                 {brl(product.compareAt!)}
               </span>
             )}
-            <span className="font-display text-2xl font-semibold text-pf-green-700">
+            <span className="font-display text-xl font-semibold text-pf-green-700 md:text-2xl">
               {brl(product.price)}
             </span>
           </div>

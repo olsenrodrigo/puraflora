@@ -3,6 +3,7 @@ import { Route, Switch, useLocation } from "wouter";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
 import CartDrawer from "@/components/CartDrawer";
+import CookieConsent from "@/components/CookieConsent";
 import SplashIntro from "@/components/SplashIntro";
 import Home from "@/pages/Home";
 import Store from "@/pages/Store";
@@ -76,6 +77,7 @@ export default function App() {
       </main>
       {!isAdmin && <Footer />}
       {!isAdmin && <CartDrawer />}
+      {!isAdmin && <CookieConsent />}
     </div>
   );
 }

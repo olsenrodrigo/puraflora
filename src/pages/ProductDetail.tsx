@@ -20,6 +20,7 @@ import { Rating } from "@/components/ui/Rating";
 import ProductCard from "@/components/store/ProductCard";
 import { Reveal } from "@/components/ui/Reveal";
 import { brl } from "@/lib/utils";
+import { trackViewItem, useAnalyticsReady } from "@/lib/analytics";
 
 export default function ProductDetail() {
   const { t, i18n } = useTranslation();
@@ -30,6 +31,7 @@ export default function ProductDetail() {
   const { products: PRODUCTS } = useProducts();
   const [qty, setQty] = useState(1);
   const [added, setAdded] = useState(false);
+  const analyticsOn = useAnalyticsReady();
 
   const product = PRODUCTS.find((p) => p.slug === (params.slug ?? ""));
 
@@ -37,6 +39,16 @@ export default function ProductDetail() {
     setQty(1);
     if (product) document.title = `${tp(product, lang).name} — PuraFlora`;
   }, [params.slug, lang, product]);
+
+  // Analytics: view_item ao abrir a página do produto. Depende de `analyticsOn`
+  // para reemitir caso o consentimento chegue depois da montagem (no-op protege
+  // contra duplicidade só não vale aqui — mas trackViewItem só emite com ready).
+  useEffect(() => {
+    if (product && analyticsOn) {
+      trackViewItem({ slug: product.slug, name: tp(product, lang).name, price: product.price, category: String(product.category ?? "") });
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [params.slug, product?.slug, analyticsOn]);
 
   if (!product) {
     return (

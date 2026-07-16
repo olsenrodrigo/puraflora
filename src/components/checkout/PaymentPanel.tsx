@@ -9,6 +9,7 @@ import {
   QrCode,
 } from "lucide-react";
 import { brl, cn } from "@/lib/utils";
+import { trackPurchase, type AnalyticsItem } from "@/lib/analytics";
 
 type Method = "PIX" | "BOLETO" | "CREDIT_CARD";
 
@@ -39,6 +40,8 @@ interface Props {
   maxInstallments: number;
   methods?: Method[];
   cardMode?: "embedded" | "redirect";
+  analyticsItems?: AnalyticsItem[];
+  couponCode?: string;
 }
 
 const METHOD_LABELS: Record<Method, string> = {
@@ -65,7 +68,7 @@ function CopyButton({ text, label }: { text: string; label: string }) {
   );
 }
 
-export default function PaymentPanel({ orderNumber, total, customer, maxInstallments, methods, cardMode }: Props) {
+export default function PaymentPanel({ orderNumber, total, customer, maxInstallments, methods, cardMode, analyticsItems, couponCode }: Props) {
   const allowed: Method[] = methods && methods.length ? methods : ["PIX", "BOLETO", "CREDIT_CARD"];
   const [method, setMethod] = useState<Method>(allowed[0]);
   const cardRedirect = method === "CREDIT_CARD" && cardMode === "redirect";
@@ -88,6 +91,15 @@ export default function PaymentPanel({ orderNumber, total, customer, maxInstallm
   const [result, setResult] = useState<CheckoutResult | null>(null);
   const [paid, setPaid] = useState(false);
   const pollRef = useRef<number | null>(null);
+
+  // Analytics: purchase quando o pagamento é CONFIRMADO (não na criação do pedido).
+  // O dedup interno de trackPurchase garante 1x por pedido.
+  useEffect(() => {
+    if (paid) {
+      trackPurchase({ orderNumber, value: total, coupon: couponCode, items: analyticsItems ?? [] });
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [paid]);
 
   // Polling do status enquanto aguarda pagamento (PIX/boleto)
   useEffect(() => {

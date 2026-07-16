@@ -1,6 +1,6 @@
 import { Router } from "express";
-import { listActiveProducts, listCategories } from "../storage";
-import type { ProductRow } from "../../shared/schema";
+import { listActiveProducts, listCategories, getStoreSettings } from "../storage";
+import type { ProductRow, AnalyticsConfig } from "../../shared/schema";
 
 // Formato compatível com a interface `Product` de src/data/catalog.ts,
 // para o front-end continuar consumindo o mesmo shape de sempre.
@@ -40,6 +40,22 @@ export function productsRouter(): Router {
         .sort((a, b) => a.sortOrder - b.sortOrder)
         .map((c) => ({ id: c.id, name: c.name, blurb: c.blurb, icon: c.icon, accent: c.accent }))
     );
+  });
+
+  // Config pública da loja para o front (analytics/pixels). Só IDs públicos —
+  // nunca tokens secretos. requireConsent default true (LGPD).
+  router.get("/config", async (_req, res) => {
+    const settings = await getStoreSettings();
+    const ac = (settings?.analyticsConfig ?? {}) as AnalyticsConfig;
+    res.set("Cache-Control", "public, max-age=300");
+    res.json({
+      analytics: {
+        ga4MeasurementId: ac.ga4MeasurementId || null,
+        metaPixelId: ac.metaPixelId || null,
+        tiktokPixelId: ac.tiktokPixelId || null,
+        requireConsent: ac.requireConsent !== false, // default true
+      },
+    });
   });
 
   return router;

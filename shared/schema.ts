@@ -142,6 +142,22 @@ export const DEFAULT_PAYMENT_CONFIG: PaymentConfig = {
   credit_card: { enabled: true, gateway: "asaas", mode: "embedded" },
 };
 
+// ─── Analytics & Pixels (medição de funil) ───────────────────────────────────
+// Só IDs PÚBLICOS de pixel (podem ir ao front). Nunca guardar aqui tokens
+// secretos (ex.: Meta Conversions API) — esses vão em coluna própria.
+export interface AnalyticsConfig {
+  ga4MeasurementId?: string; // G-XXXXXXX (Google Analytics 4)
+  metaPixelId?: string; // Meta/Facebook Pixel
+  tiktokPixelId?: string; // TikTok Pixel (opcional)
+  requireConsent?: boolean; // LGPD: exigir consentimento antes de carregar (default true)
+}
+export const ANALYTICS_CONFIG_KEYS: (keyof AnalyticsConfig)[] = [
+  "ga4MeasurementId",
+  "metaPixelId",
+  "tiktokPixelId",
+  "requireConsent",
+];
+
 export const storeSettings = pgTable("store_settings", {
   id: serial("id").primaryKey(), // linha única (singleton, sempre id=1)
   storeName: text("store_name").notNull().default("PuraFlora"),
@@ -153,6 +169,7 @@ export const storeSettings = pgTable("store_settings", {
   mercadoPagoToken: text("mercado_pago_token"), // secreto — nunca devolver ao cliente
   mercadoPagoPublicKey: text("mercado_pago_public_key"),
   paymentConfig: jsonb("payment_config").$type<PaymentConfig>(),
+  analyticsConfig: jsonb("analytics_config").$type<AnalyticsConfig>(),
   pixKey: text("pix_key"),
   maxInstallments: integer("max_installments").notNull().default(12),
   freeInstallments: integer("free_installments").notNull().default(3),

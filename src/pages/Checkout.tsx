@@ -16,6 +16,7 @@ import { useCart } from "@/context/CartContext";
 import CouponField from "@/components/store/CouponField";
 import { brl, cn } from "@/lib/utils";
 import PaymentPanel from "@/components/checkout/PaymentPanel";
+import { trackBeginCheckout, trackPurchase, useAnalyticsReady, type AnalyticsItem } from "@/lib/analytics";
 
 interface PaymentConfig {
   enabled: boolean;
@@ -76,6 +77,8 @@ export default function Checkout() {
     orderNumber: string;
     total: number;
     customer: { name: string; phone: string; email: string };
+    items: AnalyticsItem[];
+    coupon?: string;
   }>(null);
   const [payLoading, setPayLoading] = useState(false);
 
@@ -85,6 +88,28 @@ export default function Checkout() {
       .then(setPayCfg)
       .catch(() => setPayCfg(null));
   }, []);
+
+  // Itens no formato de analytics (usado no begin_checkout e no purchase)
+  const analyticsItems = (): AnalyticsItem[] =>
+    lines.map((l) => ({
+      slug: l.product.slug,
+      name: tp(l.product, lang).name,
+      price: l.product.price,
+      quantity: l.quantity,
+    }));
+
+  // Analytics: begin_checkout ao abrir o checkout (1x, quando há itens). Só marca
+  // "done" após o analytics estar pronto — se o consentimento chegar depois, o
+  // efeito reexecuta (dep analyticsOn) e o evento não se perde.
+  const analyticsOn = useAnalyticsReady();
+  const beganCheckout = useMemo(() => ({ done: false }), []);
+  useEffect(() => {
+    if (!beganCheckout.done && analyticsOn && lines.length > 0) {
+      beganCheckout.done = true;
+      trackBeginCheckout(analyticsItems());
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [lines.length, analyticsOn]);
 
   // frete
   const [shipOptions, setShipOptions] = useState<ShipOption[] | null>(null);
@@ -165,6 +190,8 @@ export default function Checkout() {
             maxInstallments={payCfg?.maxInstallments ?? 12}
             methods={payCfg?.methods}
             cardMode={payCfg?.cardMode}
+            analyticsItems={payStep.items}
+            couponCode={payStep.coupon}
           />
         </div>
       </div>
@@ -278,18 +305,25 @@ export default function Checkout() {
         }
         throw new Error(data.error || "Erro ao criar pedido");
       }
-      // Total 0 (cupom de 100% + frete grátis): nada a pagar online — pedido concluído.
+      const purchaseItems = analyticsItems();
+      // Total 0 (cupom de 100% + frete grátis): nada a pagar online — pedido concluído
+      // AGORA (não há pagamento a confirmar) → purchase aqui.
       if (Number(data.total) <= 0) {
+        trackPurchase({ orderNumber: data.orderNumber, value: Number(data.total), coupon: coupon?.code, items: purchaseItems });
         clear();
         setSent(true);
         window.scrollTo({ top: 0, behavior: "smooth" });
         return;
       }
+      // Fluxo online COM cobrança: purchase só quando o pagamento for confirmado
+      // (disparado pelo PaymentPanel), não na criação do pedido.
       clear();
       setPayStep({
         orderNumber: data.orderNumber,
         total: Number(data.total),
         customer: { name: form.name, phone: form.phone, email: form.email },
+        items: purchaseItems,
+        coupon: coupon?.code,
       });
       window.scrollTo({ top: 0, behavior: "smooth" });
     } catch {
@@ -342,6 +376,7 @@ export default function Checkout() {
       orderNumber = data.orderNumber;
       serverTotal = Number(data.total);
       serverDiscount = Number(data.discountAmount ?? discount);
+      trackPurchase({ orderNumber, value: serverTotal, coupon: coupon?.code, items: analyticsItems() });
     } catch {
       waWindow?.close();
       window.alert(lang === "pt" ? "Falha de conexão. Tente novamente." : "Connection failed. Try again.");

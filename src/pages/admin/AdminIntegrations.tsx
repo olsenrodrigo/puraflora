@@ -1,8 +1,21 @@
 import { useEffect, useState } from "react";
 import { Link } from "wouter";
-import { CreditCard, Info, Truck, Wallet } from "lucide-react";
+import { BarChart3, Check, CreditCard, Info, Truck, Wallet } from "lucide-react";
 import { useAdminFetch } from "@/context/AdminAuthContext";
 import { brl, cn } from "@/lib/utils";
+
+interface AnalyticsForm {
+  ga4MeasurementId: string;
+  metaPixelId: string;
+  tiktokPixelId: string;
+  requireConsent: boolean;
+}
+const EMPTY_ANALYTICS: AnalyticsForm = {
+  ga4MeasurementId: "",
+  metaPixelId: "",
+  tiktokPixelId: "",
+  requireConsent: true,
+};
 
 interface ShippingStatus {
   mock: boolean;
@@ -29,6 +42,9 @@ export default function AdminIntegrations() {
   const [balance, setBalance] = useState<number | null>(null);
   const [hasPaymentToken, setHasPaymentToken] = useState(false);
   const [loading, setLoading] = useState(true);
+  const [analytics, setAnalytics] = useState<AnalyticsForm>(EMPTY_ANALYTICS);
+  const [analyticsSaving, setAnalyticsSaving] = useState(false);
+  const [analyticsSaved, setAnalyticsSaved] = useState(false);
 
   useEffect(() => {
     Promise.all([
@@ -40,6 +56,13 @@ export default function AdminIntegrations() {
         setShipping(shippingData);
         setHasPaymentToken(!!settingsData.hasToken);
         setAsaas(asaasData);
+        const ac = settingsData.analyticsConfig ?? {};
+        setAnalytics({
+          ga4MeasurementId: ac.ga4MeasurementId ?? "",
+          metaPixelId: ac.metaPixelId ?? "",
+          tiktokPixelId: ac.tiktokPixelId ?? "",
+          requireConsent: ac.requireConsent !== false,
+        });
       })
       .finally(() => setLoading(false));
     adminFetch("/api/admin/payments/balance")
@@ -48,6 +71,30 @@ export default function AdminIntegrations() {
       .catch(() => {});
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  const saveAnalytics = async () => {
+    setAnalyticsSaving(true);
+    setAnalyticsSaved(false);
+    try {
+      const res = await adminFetch("/api/admin/settings", {
+        method: "PUT",
+        body: JSON.stringify({
+          analyticsConfig: {
+            ga4MeasurementId: analytics.ga4MeasurementId.trim(),
+            metaPixelId: analytics.metaPixelId.trim(),
+            tiktokPixelId: analytics.tiktokPixelId.trim(),
+            requireConsent: analytics.requireConsent,
+          },
+        }),
+      });
+      if (res.ok) {
+        setAnalyticsSaved(true);
+        window.setTimeout(() => setAnalyticsSaved(false), 2500);
+      }
+    } finally {
+      setAnalyticsSaving(false);
+    }
+  };
 
   if (loading) return <p className="text-pf-ink-soft">Carregando...</p>;
 
@@ -59,6 +106,82 @@ export default function AdminIntegrations() {
       </p>
 
       <div className="mt-6 space-y-4">
+        {/* Analytics & Pixels */}
+        <div className="rounded-2xl border border-pf-border bg-white p-6">
+          <div className="flex items-center gap-3">
+            <span className="flex h-10 w-10 items-center justify-center rounded-full bg-pf-green-100 text-pf-green-700">
+              <BarChart3 size={18} />
+            </span>
+            <div>
+              <h2 className="font-display text-lg font-semibold text-pf-green-900">Analytics &amp; Pixels</h2>
+              <p className="text-sm text-pf-ink-soft">Medição do funil — GA4, Meta Pixel e TikTok</p>
+            </div>
+          </div>
+
+          <div className="mt-5 grid gap-4 sm:grid-cols-3">
+            <label className="block">
+              <span className="text-xs font-semibold uppercase tracking-wide text-pf-ink-soft">Google Analytics 4</span>
+              <input
+                value={analytics.ga4MeasurementId}
+                onChange={(e) => setAnalytics((a) => ({ ...a, ga4MeasurementId: e.target.value }))}
+                placeholder="G-XXXXXXXXXX"
+                className="mt-1 w-full rounded-xl border border-pf-border px-3 py-2 font-mono text-sm focus:border-pf-green-700 focus:outline-none"
+              />
+            </label>
+            <label className="block">
+              <span className="text-xs font-semibold uppercase tracking-wide text-pf-ink-soft">Meta Pixel</span>
+              <input
+                value={analytics.metaPixelId}
+                onChange={(e) => setAnalytics((a) => ({ ...a, metaPixelId: e.target.value }))}
+                placeholder="123456789012345"
+                className="mt-1 w-full rounded-xl border border-pf-border px-3 py-2 font-mono text-sm focus:border-pf-green-700 focus:outline-none"
+              />
+            </label>
+            <label className="block">
+              <span className="text-xs font-semibold uppercase tracking-wide text-pf-ink-soft">TikTok Pixel <span className="normal-case text-pf-ink-soft/70">(opcional)</span></span>
+              <input
+                value={analytics.tiktokPixelId}
+                onChange={(e) => setAnalytics((a) => ({ ...a, tiktokPixelId: e.target.value }))}
+                placeholder="CXXXXXXXXXXXXXXXXX"
+                className="mt-1 w-full rounded-xl border border-pf-border px-3 py-2 font-mono text-sm focus:border-pf-green-700 focus:outline-none"
+              />
+            </label>
+          </div>
+
+          <label className="mt-4 flex cursor-pointer items-start gap-3">
+            <input
+              type="checkbox"
+              checked={analytics.requireConsent}
+              onChange={(e) => setAnalytics((a) => ({ ...a, requireConsent: e.target.checked }))}
+              className="mt-0.5 h-4 w-4 accent-pf-green-700"
+            />
+            <span className="text-sm text-pf-ink-soft">
+              Exigir consentimento (LGPD) antes de carregar os pixels — recomendado. Sem isso, os pixels carregam para todos os visitantes.
+            </span>
+          </label>
+
+          <div className="mt-5 flex items-center gap-3">
+            <button
+              type="button"
+              onClick={saveAnalytics}
+              disabled={analyticsSaving}
+              className="rounded-full bg-pf-green-700 px-5 py-2 text-sm font-semibold text-pf-cream hover:bg-pf-green-800 disabled:opacity-60"
+            >
+              {analyticsSaving ? "Salvando..." : "Salvar"}
+            </button>
+            {analyticsSaved && (
+              <span className="flex items-center gap-1.5 text-sm font-medium text-pf-green-700">
+                <Check size={15} /> Salvo
+              </span>
+            )}
+          </div>
+
+          <p className="mt-4 flex items-start gap-2 rounded-xl bg-pf-cream-100 p-3 text-xs text-pf-ink-soft">
+            <Info size={14} className="mt-0.5 shrink-0" />
+            Só IDs públicos de pixel. Eventos rastreados: <code className="font-mono">view_item</code>, <code className="font-mono">add_to_cart</code>, <code className="font-mono">begin_checkout</code> e <code className="font-mono">purchase</code>.
+          </p>
+        </div>
+
         {/* SmartEnvios */}
         <div className="rounded-2xl border border-pf-border bg-white p-6">
           <div className="flex items-center justify-between">

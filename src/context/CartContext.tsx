@@ -8,6 +8,8 @@ import {
 } from "react";
 import { PRODUCTS, type Product } from "@/data/catalog";
 import { computeDiscount, normalizeCouponCode } from "../../shared/coupon-utils";
+import { trackAddToCart } from "@/lib/analytics";
+import i18n from "@/i18n";
 
 interface StoredItem {
   slug: string;
@@ -102,7 +104,10 @@ export function CartProvider({ children }: { children: ReactNode }) {
   }, [coupon]);
 
   const add = (slug: string, quantity = 1) => {
-    if (!PRODUCTS.some((p) => p.slug === slug)) return;
+    const product = PRODUCTS.find((p) => p.slug === slug);
+    if (!product) return;
+    const lang = (i18n.language?.split("-")[0] ?? "pt") as keyof typeof product.i18n;
+    trackAddToCart({ slug, name: (product.i18n?.[lang] ?? product.i18n?.pt)?.name, price: product.price, quantity });
     setItems((prev) => {
       const existing = prev.find((i) => i.slug === slug);
       if (existing) {

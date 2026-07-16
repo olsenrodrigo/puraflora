@@ -13,6 +13,7 @@ import {
 import type { Lang } from "@/i18n";
 import { getPackage, tp, WHATSAPP_NUMBER } from "@/data/catalog";
 import { useCart } from "@/context/CartContext";
+import CouponField from "@/components/store/CouponField";
 import { brl, cn } from "@/lib/utils";
 import PaymentPanel from "@/components/checkout/PaymentPanel";
 
@@ -64,7 +65,7 @@ const EMPTY: Form = {
 export default function Checkout() {
   const { t, i18n } = useTranslation();
   const lang = (i18n.language?.split("-")[0] as Lang) || "pt";
-  const { lines, subtotal, clear } = useCart();
+  const { lines, subtotal, clear, coupon, discount, couponBelowMin, removeCoupon } = useCart();
   const [form, setForm] = useState<Form>(EMPTY);
   const [touched, setTouched] = useState(false);
   const [sent, setSent] = useState(false);
@@ -188,7 +189,7 @@ export default function Checkout() {
   }
 
   const shippingCost = shipSel ? shipSel.finalValue : 0;
-  const total = subtotal + shippingCost;
+  const total = Math.max(0, subtotal - discount) + shippingCost;
 
   const calcFreight = async () => {
     const cep = form.cep.replace(/\D/g, "");
@@ -240,6 +241,7 @@ export default function Checkout() {
     shippingService: shipSel?.service ?? null,
     shippingAmount: shippingCost.toFixed(2),
     total: total.toFixed(2),
+    couponCode: coupon && !couponBelowMin ? coupon.code : null,
     items: lines.map((l) => ({
       productSlug: l.product.slug,
       productName: tp(l.product, lang).name,
@@ -264,11 +266,29 @@ export default function Checkout() {
         body: JSON.stringify(buildOrderPayload()),
       });
       const data = await res.json();
-      if (!res.ok) throw new Error(data.error || "Erro ao criar pedido");
+      if (!res.ok) {
+        if (res.status === 409 && (data.code === "coupon_exhausted" || data.code === "coupon_invalid")) {
+          removeCoupon();
+          window.alert(
+            lang === "pt"
+              ? "O cupom não está mais disponível. O total foi atualizado — confira e finalize novamente."
+              : "The coupon is no longer available. The total was updated — please review and finish again."
+          );
+          return;
+        }
+        throw new Error(data.error || "Erro ao criar pedido");
+      }
+      // Total 0 (cupom de 100% + frete grátis): nada a pagar online — pedido concluído.
+      if (Number(data.total) <= 0) {
+        clear();
+        setSent(true);
+        window.scrollTo({ top: 0, behavior: "smooth" });
+        return;
+      }
       clear();
       setPayStep({
         orderNumber: data.orderNumber,
-        total,
+        total: Number(data.total),
         customer: { name: form.name, phone: form.phone, email: form.email },
       });
       window.scrollTo({ top: 0, behavior: "smooth" });
@@ -279,7 +299,7 @@ export default function Checkout() {
     }
   };
 
-  const submit = (e: React.FormEvent) => {
+  const submit = async (e: React.FormEvent) => {
     e.preventDefault();
     setTouched(true);
     if (missing.length > 0) {
@@ -287,24 +307,64 @@ export default function Checkout() {
       return;
     }
 
+    // Abre a aba do WhatsApp JÁ no gesto do clique (evita bloqueio de popup) e
+    // redireciona depois que o pedido é confirmado no backend (que conta o cupom).
+    const waWindow = window.open("", "_blank");
+
+    let orderNumber = "";
+    let serverTotal = total;
+    let serverDiscount = discount;
+    try {
+      const res = await fetch("/api/orders", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(buildOrderPayload()),
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        waWindow?.close();
+        if (res.status === 409 && (data.code === "coupon_exhausted" || data.code === "coupon_invalid")) {
+          removeCoupon();
+          window.alert(
+            lang === "pt"
+              ? "O cupom não está mais disponível. O total foi atualizado — confira e finalize novamente."
+              : "The coupon is no longer available. The total was updated — please review and finish again."
+          );
+          return;
+        }
+        window.alert(
+          lang === "pt"
+            ? "Não foi possível registrar o pedido. Tente novamente."
+            : "Could not place the order. Try again."
+        );
+        return;
+      }
+      orderNumber = data.orderNumber;
+      serverTotal = Number(data.total);
+      serverDiscount = Number(data.discountAmount ?? discount);
+    } catch {
+      waWindow?.close();
+      window.alert(lang === "pt" ? "Falha de conexão. Tente novamente." : "Connection failed. Try again.");
+      return;
+    }
+
     const itemLines = lines
-      .map(
-        (l) =>
-          `• ${l.quantity}x ${tp(l.product, lang).name} — ${brl(l.lineTotal)}`
-      )
+      .map((l) => `• ${l.quantity}x ${tp(l.product, lang).name} — ${brl(l.lineTotal)}`)
       .join("\n");
 
     const msg = [
       t("checkout.orderIntro"),
       "",
+      `${lang === "pt" ? "Pedido" : "Order"}: ${orderNumber}`,
       itemLines,
       "",
       `${t("cart.subtotal")}: ${brl(subtotal)}`,
+      serverDiscount > 0 && `${t("cart.discount")} (${coupon?.code}): -${brl(serverDiscount)}`,
       shipSel &&
         `${t("checkout.freightRow")}: ${
           shipSel.free ? t("checkout.freightFree") : brl(shipSel.finalValue)
         } (${shipSel.service})`,
-      `${t("checkout.total")}: ${brl(total)}`,
+      `${t("checkout.total")}: ${brl(serverTotal)}`,
       "",
       `${t("checkout.name")}: ${form.name}`,
       `${t("checkout.phone")}: ${form.phone}`,
@@ -318,18 +378,9 @@ export default function Checkout() {
       .filter(Boolean)
       .join("\n");
 
-    // Registra o pedido no backend (para aparecer no admin) sem bloquear o
-    // fluxo do WhatsApp — se a chamada falhar, a experiência do usuário
-    // continua idêntica.
-    fetch("/api/orders", {
-      method: "POST",
-      keepalive: true,
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(buildOrderPayload()),
-    }).catch(() => {});
-
     const url = `https://wa.me/${WHATSAPP_NUMBER}?text=${encodeURIComponent(msg)}`;
-    window.open(url, "_blank");
+    if (waWindow) waWindow.location.href = url;
+    else window.open(url, "_blank");
     clear();
     setSent(true);
   };
@@ -578,6 +629,14 @@ export default function Checkout() {
                       : "—"}
                   </span>
                 </div>
+                {discount > 0 && (
+                  <div className="flex items-center justify-between text-pf-green-700">
+                    <span>
+                      {t("cart.discount")} ({coupon?.code})
+                    </span>
+                    <span className="font-medium">−{brl(discount)}</span>
+                  </div>
+                )}
                 <div className="flex items-center justify-between border-t border-pf-green-900/8 pt-3">
                   <span className="font-semibold text-pf-green-900">
                     {t("checkout.total")}
@@ -587,6 +646,8 @@ export default function Checkout() {
                   </span>
                 </div>
               </div>
+
+              <CouponField />
 
               {payCfg?.enabled ? (
                 <div className="mt-5 space-y-2.5">

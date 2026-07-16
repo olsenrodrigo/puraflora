@@ -15,6 +15,8 @@ import { adminReportsRouter } from "./routes/admin-reports";
 import { paymentsRouter } from "./routes/payments";
 import { webhooksRouter } from "./routes/webhooks";
 import { adminPaymentsRouter } from "./routes/admin-payments";
+import { couponsRouter } from "./routes/coupons";
+import { adminCouponsRouter } from "./routes/admin-coupons";
 import { getAsaasConfig, startReconciler } from "./asaas-integration";
 import { hashPassword } from "./auth";
 import { countAdmins, createAdminUser } from "./storage";
@@ -58,9 +60,11 @@ async function main() {
   app.use("/api/admin/settings", adminSettingsRouter());
   app.use("/api/admin/reports", adminReportsRouter());
   app.use("/api/admin/payments", adminPaymentsRouter());
+  app.use("/api/admin/coupons", adminCouponsRouter());
   app.use("/api/payments", paymentsRouter());
   app.use("/api/webhooks", webhooksRouter());
   app.use("/api/orders", ordersRouter());
+  app.use("/api/coupons", couponsRouter());
 
   await seedDefaultAdmin();
   startReconciler(getAsaasConfig());

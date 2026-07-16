@@ -1,4 +1,4 @@
-import { eq, desc, sql, inArray, and, isNull } from "drizzle-orm";
+import { eq, desc, sql, inArray, and, isNull, or } from "drizzle-orm";
 import { db } from "./db";
 import {
   adminUsers,
@@ -10,8 +10,11 @@ import {
   paymentTransactions,
   webhookEvents,
   subscriptions,
+  coupons,
   type ProductRow,
+  type Coupon,
 } from "../shared/schema";
+import { computeDiscount, normalizeCouponCode } from "../shared/coupon-utils";
 
 // --- admin users ---
 
@@ -141,16 +144,149 @@ export async function deleteProduct(id: number) {
 
 // --- orders ---
 
+export class CouponExhaustedError extends Error {
+  constructor() {
+    super("Cupom esgotado ou inválido");
+    this.name = "CouponExhaustedError";
+  }
+}
+
 export async function createOrderWithItems(
   orderData: typeof orders.$inferInsert,
-  items: Array<Omit<typeof orderItems.$inferInsert, "orderId">>
+  items: Array<Omit<typeof orderItems.$inferInsert, "orderId">>,
+  couponClaim?: { code: string; subtotal: number }
 ) {
-  const rows = await db.insert(orders).values(orderData).returning();
-  const order = rows[0];
-  if (items.length) {
-    await db.insert(orderItems).values(items.map((it) => ({ ...it, orderId: order.id })));
+  // Transação: o claim atômico do cupom e a criação do pedido ficam consistentes
+  // (rollback desfaz o incremento se o insert falhar). Corrige também o antigo
+  // risco de pedido sem itens quando o 2º insert falhava.
+  return db.transaction(async (tx) => {
+    let data = orderData;
+    if (couponClaim) {
+      const claimed = await claimCouponUsage(couponClaim.code, couponClaim.subtotal, tx);
+      if (!claimed) throw new CouponExhaustedError();
+      // Fonte de verdade do desconto = o cupom REALMENTE reivindicado (fecha o
+      // TOCTOU se o admin mudar type/value entre a validação e o claim).
+      const sub = Number(orderData.subtotal);
+      const ship = Number(orderData.shippingAmount ?? 0);
+      const disc = computeDiscount(claimed.type, Number(claimed.value), sub);
+      const total = Math.round((Math.max(0, sub - disc) + ship) * 100) / 100;
+      data = { ...orderData, discountAmount: disc.toFixed(2), total: total.toFixed(2) };
+    }
+    const rows = await tx.insert(orders).values(data).returning();
+    const order = rows[0];
+    if (items.length) {
+      await tx.insert(orderItems).values(items.map((it) => ({ ...it, orderId: order.id })));
+    }
+    return order;
+  });
+}
+
+// --- cupons ---
+export type CouponRejection =
+  | "not_found"
+  | "inactive"
+  | "not_started"
+  | "expired"
+  | "exhausted"
+  | "min_order";
+
+export async function listCoupons(): Promise<Coupon[]> {
+  return db.select().from(coupons).orderBy(desc(coupons.createdAt));
+}
+
+export async function getCouponByCode(code: string): Promise<Coupon | undefined> {
+  const rows = await db.select().from(coupons).where(eq(coupons.code, normalizeCouponCode(code)));
+  return rows[0];
+}
+
+export async function createCoupon(data: typeof coupons.$inferInsert): Promise<Coupon> {
+  const rows = await db
+    .insert(coupons)
+    .values({ ...data, code: normalizeCouponCode(data.code) })
+    .returning();
+  return rows[0];
+}
+
+export async function updateCoupon(
+  id: number,
+  data: Partial<typeof coupons.$inferInsert>
+): Promise<Coupon | undefined> {
+  const patch: Partial<typeof coupons.$inferInsert> = { ...data };
+  delete (patch as { usedCount?: number }).usedCount; // nunca pelo admin
+  if (patch.code) patch.code = normalizeCouponCode(patch.code);
+  const rows = await db.update(coupons).set(patch).where(eq(coupons.id, id)).returning();
+  return rows[0];
+}
+
+export async function deleteCoupon(id: number): Promise<void> {
+  await db.delete(coupons).where(eq(coupons.id, id));
+}
+
+/**
+ * Claim ATÔMICO de 1 uso: revalida (ativo, janela de datas, limite, mínimo) e
+ * incrementa na MESMA instrução SQL. O row-lock serializa concorrentes e o WHERE
+ * é reavaliado após o lock (READ COMMITTED) — na corrida do último uso, só 1 vence.
+ * Retorna a linha atualizada, ou null se qualquer condição falhou.
+ */
+export async function claimCouponUsage(
+  code: string,
+  subtotal: number,
+  exec: any = db
+): Promise<Coupon | null> {
+  const rows = await exec
+    .update(coupons)
+    .set({ usedCount: sql`${coupons.usedCount} + 1` })
+    .where(
+      and(
+        eq(coupons.code, normalizeCouponCode(code)),
+        eq(coupons.active, true),
+        or(isNull(coupons.maxUses), sql`${coupons.usedCount} < ${coupons.maxUses}`),
+        or(isNull(coupons.validFrom), sql`${coupons.validFrom} <= now()`),
+        or(isNull(coupons.validUntil), sql`${coupons.validUntil} >= now()`),
+        or(isNull(coupons.minOrderValue), sql`${coupons.minOrderValue} <= ${subtotal}`)
+      )
+    )
+    .returning();
+  return rows[0] ?? null;
+}
+
+/** Compensação: só usada se um claim fora de transação precisar ser desfeito. */
+export async function releaseCouponUsage(code: string): Promise<void> {
+  await db
+    .update(coupons)
+    .set({ usedCount: sql`greatest(${coupons.usedCount} - 1, 0)` })
+    .where(eq(coupons.code, normalizeCouponCode(code)));
+}
+
+/** Validação SEM efeito colateral (para o POST /api/coupons/validate). */
+export async function validateCoupon(
+  code: string,
+  subtotal: number
+): Promise<
+  | { valid: true; coupon: Coupon; discount: number }
+  | { valid: false; reason: CouponRejection; minOrderValue?: string; type?: string; value?: number }
+> {
+  const coupon = await getCouponByCode(code);
+  if (!coupon) return { valid: false, reason: "not_found" };
+  if (!coupon.active) return { valid: false, reason: "inactive" };
+  const now = new Date();
+  if (coupon.validFrom && coupon.validFrom > now) return { valid: false, reason: "not_started" };
+  if (coupon.validUntil && coupon.validUntil < now) return { valid: false, reason: "expired" };
+  if (coupon.maxUses != null && coupon.usedCount >= coupon.maxUses) {
+    return { valid: false, reason: "exhausted" };
   }
-  return order;
+  if (coupon.minOrderValue != null && subtotal < Number(coupon.minOrderValue)) {
+    // devolve type/value para o front "armar" o cupom (desconto ativa ao atingir o mínimo)
+    return {
+      valid: false,
+      reason: "min_order",
+      minOrderValue: String(coupon.minOrderValue),
+      type: coupon.type,
+      value: Number(coupon.value),
+    };
+  }
+  const discount = computeDiscount(coupon.type, Number(coupon.value), subtotal);
+  return { valid: true, coupon, discount };
 }
 
 export async function listOrders(page: number, limit: number) {

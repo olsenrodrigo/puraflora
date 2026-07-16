@@ -12,6 +12,7 @@ import {
   Plug,
   Users,
   Repeat,
+  Ticket,
   X,
   type LucideIcon,
 } from "lucide-react";
@@ -45,6 +46,7 @@ const NAV: NavSection[] = [
     items: [
       { href: "/admin/pedidos", label: "Pedidos", icon: ShoppingBag, roles: ["admin", "financeiro", "operacao"] },
       { href: "/admin/assinaturas", label: "Assinaturas", icon: Repeat, roles: ["admin", "financeiro"] },
+      { href: "/admin/cupons", label: "Cupons", icon: Ticket, roles: ["admin"] },
     ],
   },
   {

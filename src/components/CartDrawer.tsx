@@ -11,7 +11,7 @@ import { brl } from "@/lib/utils";
 export default function CartDrawer() {
   const { t, i18n } = useTranslation();
   const lang = (i18n.language?.split("-")[0] as Lang) || "pt";
-  const { isOpen, close, lines, subtotal, setQty, remove, itemCount } =
+  const { isOpen, close, lines, subtotal, setQty, remove, itemCount, coupon, discount } =
     useCart();
   const [location] = useLocation();
 
@@ -182,6 +182,14 @@ export default function CartDrawer() {
 
                 {/* footer */}
                 <div className="border-t border-pf-green-900/8 bg-white px-5 py-4">
+                  {discount > 0 && (
+                    <div className="mb-2 flex items-center justify-between text-sm text-pf-green-700">
+                      <span>
+                        {t("cart.discount")} ({coupon?.code})
+                      </span>
+                      <span className="font-semibold">−{brl(discount)}</span>
+                    </div>
+                  )}
                   <div className="mb-3 flex items-center justify-between">
                     <span className="text-sm text-pf-ink-soft">
                       {t("cart.subtotal")}

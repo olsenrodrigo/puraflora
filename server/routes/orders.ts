@@ -1,7 +1,8 @@
 import { Router } from "express";
 import { z } from "zod";
-import { createOrderWithItems, getProductBySlug } from "../storage";
+import { createOrderWithItems, getProductBySlug, validateCoupon, CouponExhaustedError } from "../storage";
 import type { ProductRow } from "../../shared/schema";
+import { normalizeCouponCode } from "../../shared/coupon-utils";
 
 // O cliente informa apenas slug + quantidade (+ frete escolhido). Preços,
 // subtotal e total são SEMPRE recalculados no servidor a partir do catálogo —
@@ -25,6 +26,7 @@ const orderSchema = z.object({
   notes: z.string().nullable().optional(),
   shippingService: z.string().nullable().optional(),
   shippingAmount: z.union([z.string(), z.number()]).optional(),
+  couponCode: z.string().max(64).nullable().optional(), // só o código; o desconto é recalculado no servidor
   // chaves extras (preços enviados pelo front) são ignoradas — recalculamos tudo
   items: z.array(orderItemSchema).min(1),
 });
@@ -51,7 +53,7 @@ export function ordersRouter(): Router {
     if (!parsed.success) {
       return res.status(400).json({ error: "Dados inválidos", details: parsed.error.flatten() });
     }
-    const { items, shippingAmount, shippingService, ...customer } = parsed.data;
+    const { items, shippingAmount, shippingService, couponCode, ...customer } = parsed.data;
 
     try {
       // Recalcula preços a partir do catálogo (fonte de verdade)
@@ -74,23 +76,47 @@ export function ordersRouter(): Router {
         });
       }
 
-      const subtotal = resolved.reduce((s, it) => s + Number(it.totalPrice), 0);
+      const subtotal = Math.round(resolved.reduce((s, it) => s + Number(it.totalPrice), 0) * 100) / 100;
       const shipping = sanitizeShipping(shippingAmount);
-      const total = Math.round((subtotal + shipping) * 100) / 100;
+
+      // Cupom (opcional): valida server-side; desconto incide só no subtotal.
+      let discount = 0;
+      let appliedCode: string | null = null;
+      if (couponCode) {
+        appliedCode = normalizeCouponCode(couponCode);
+        const check = await validateCoupon(appliedCode, subtotal);
+        if (!check.valid) {
+          return res
+            .status(409)
+            .json({ error: "Cupom inválido ou indisponível", code: "coupon_invalid", reason: check.reason });
+        }
+        discount = check.discount;
+      }
+      const total = Math.round((Math.max(0, subtotal - discount) + shipping) * 100) / 100;
 
       const order = await createOrderWithItems(
         {
           ...customer,
           orderNumber: generateOrderNumber(),
           subtotal: subtotal.toFixed(2),
+          couponCode: appliedCode,
+          discountAmount: discount.toFixed(2),
           shippingService: shippingService ?? null,
           shippingAmount: shipping.toFixed(2),
           total: total.toFixed(2),
         },
-        resolved
+        resolved,
+        appliedCode ? { code: appliedCode, subtotal } : undefined
       );
-      res.status(201).json({ orderNumber: order.orderNumber, total: order.total });
+      res.status(201).json({
+        orderNumber: order.orderNumber,
+        total: order.total,
+        discountAmount: order.discountAmount,
+      });
     } catch (err: any) {
+      if (err instanceof CouponExhaustedError) {
+        return res.status(409).json({ error: "Cupom esgotado — atualize o pedido", code: "coupon_exhausted" });
+      }
       res.status(500).json({ error: err?.message || "Erro ao criar pedido" });
     }
   });

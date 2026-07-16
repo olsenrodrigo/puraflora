@@ -120,6 +120,12 @@ export default function AdminOrderDetail() {
           <div className="flex justify-between text-pf-ink-soft">
             <span>Subtotal</span><span>{brl(Number(order.subtotal))}</span>
           </div>
+          {Number(order.discountAmount ?? 0) > 0 && (
+            <div className="flex justify-between text-pf-green-700">
+              <span>Desconto{order.couponCode ? ` (${order.couponCode})` : ""}</span>
+              <span>−{brl(Number(order.discountAmount))}</span>
+            </div>
+          )}
           <div className="flex justify-between text-pf-ink-soft">
             <span>Frete{order.shippingService ? ` (${order.shippingService})` : ""}</span>
             <span>{brl(Number(order.shippingAmount))}</span>

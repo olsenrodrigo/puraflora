@@ -262,14 +262,19 @@ export function paymentsRouter(): Router {
         quantity: it.quantity,
       }));
       const subtotal = Number(order.subtotal);
+      const discount = Number(order.discountAmount ?? 0); // desconto do cupom (só no subtotal)
       const shipping = await resolveServerShipping(
         order.shippingCep,
         chargeItems,
-        subtotal,
+        subtotal, // subtotal CHEIO: o threshold de frete grátis usa o valor pré-desconto
         order.shippingService,
         Number(order.shippingAmount)
       );
-      const value = Math.round((subtotal + shipping) * 100) / 100;
+      const value = Math.round((Math.max(0, subtotal - discount) + shipping) * 100) / 100;
+      if (value <= 0) {
+        // Cupom de 100% + frete grátis: nada a cobrar online (usar WhatsApp).
+        return res.status(400).json({ error: "Pedido sem valor a cobrar", code: "zero_total" });
+      }
       // sincroniza o pedido com os valores confiáveis, se divergirem
       if (Math.abs(value - Number(order.total)) >= 0.01) {
         await updateOrderTotals(order.id, shipping.toFixed(2), value.toFixed(2));

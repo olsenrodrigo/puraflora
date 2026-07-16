@@ -25,6 +25,7 @@ import AdminReports from "@/pages/admin/AdminReports";
 import AdminSettings from "@/pages/admin/AdminSettings";
 import AdminIntegrations from "@/pages/admin/AdminIntegrations";
 import AdminSubscriptions from "@/pages/admin/AdminSubscriptions";
+import AdminCoupons from "@/pages/admin/AdminCoupons";
 import AdminUsers from "@/pages/admin/AdminUsers";
 
 function ScrollToTop() {
@@ -64,6 +65,7 @@ export default function App() {
           <Route path="/admin/pedidos" component={() => <AdminLayout><AdminOrders /></AdminLayout>} />
           <Route path="/admin/pedidos/:id" component={() => <AdminLayout><AdminOrderDetail /></AdminLayout>} />
           <Route path="/admin/assinaturas" component={() => <AdminLayout><AdminSubscriptions /></AdminLayout>} />
+          <Route path="/admin/cupons" component={() => <AdminLayout><AdminCoupons /></AdminLayout>} />
           <Route path="/admin/relatorios" component={() => <AdminLayout><AdminReports /></AdminLayout>} />
           <Route path="/admin/configuracoes" component={() => <AdminLayout><AdminSettings /></AdminLayout>} />
           <Route path="/admin/integracoes" component={() => <AdminLayout><AdminIntegrations /></AdminLayout>} />

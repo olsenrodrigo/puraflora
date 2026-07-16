@@ -11,12 +11,13 @@ import {
 import type { Lang } from "@/i18n";
 import { tp, FREE_SHIPPING_THRESHOLD } from "@/data/catalog";
 import { useCart } from "@/context/CartContext";
+import CouponField from "@/components/store/CouponField";
 import { brl } from "@/lib/utils";
 
 export default function Cart() {
   const { t, i18n } = useTranslation();
   const lang = (i18n.language?.split("-")[0] as Lang) || "pt";
-  const { lines, subtotal, setQty, remove, clear, itemCount } = useCart();
+  const { lines, subtotal, setQty, remove, clear, itemCount, coupon, discount } = useCart();
 
   const remaining = Math.max(0, FREE_SHIPPING_THRESHOLD - subtotal);
   const progress = Math.min(100, (subtotal / FREE_SHIPPING_THRESHOLD) * 100);
@@ -190,6 +191,17 @@ export default function Cart() {
               <p className="mt-1 text-xs text-pf-ink-soft/70">
                 {t("cart.shippingNote")}
               </p>
+
+              <CouponField />
+
+              {discount > 0 && (
+                <div className="mt-3 flex items-center justify-between text-sm">
+                  <span className="text-pf-green-700">
+                    {t("cart.discount")} ({coupon?.code})
+                  </span>
+                  <span className="font-semibold text-pf-green-700">−{brl(discount)}</span>
+                </div>
+              )}
 
               <Link
                 href="/loja/checkout"

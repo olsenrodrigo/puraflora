@@ -81,9 +81,11 @@ export const orders = pgTable("orders", {
   shippingState: text("shipping_state").notNull(),
   notes: text("notes"),
   subtotal: numeric("subtotal", { precision: 10, scale: 2 }).notNull(),
+  couponCode: text("coupon_code"), // snapshot; o cupom pode ser apagado depois
+  discountAmount: numeric("discount_amount", { precision: 10, scale: 2 }).notNull().default("0"),
   shippingService: text("shipping_service"),
   shippingAmount: numeric("shipping_amount", { precision: 10, scale: 2 }).notNull().default("0"),
-  total: numeric("total", { precision: 10, scale: 2 }).notNull(),
+  total: numeric("total", { precision: 10, scale: 2 }).notNull(), // = max(0, subtotal - desconto) + frete
   status: text("status").notNull().default("recebido"),
   // Pagamento online (Asaas) — null = pedido fechado via WhatsApp, sem cobrança online
   paymentStatus: text("payment_status"), // pending|paid|overdue|refunded|partially_refunded|cancelled|chargeback
@@ -103,6 +105,21 @@ export const orderItems = pgTable("order_items", {
   quantity: integer("quantity").notNull(),
   unitPrice: numeric("unit_price", { precision: 10, scale: 2 }).notNull(),
   totalPrice: numeric("total_price", { precision: 10, scale: 2 }).notNull(),
+});
+
+// Cupons de desconto. Código sempre normalizado (trim + UPPERCASE) na escrita/leitura.
+export const coupons = pgTable("coupons", {
+  id: serial("id").primaryKey(),
+  code: text("code").notNull().unique(),
+  type: text("type").notNull().default("percentage"), // "percentage" | "fixed"
+  value: numeric("value", { precision: 10, scale: 2 }).notNull(), // % (0<v<=100) ou R$ (>0)
+  minOrderValue: numeric("min_order_value", { precision: 10, scale: 2 }), // sobre o SUBTOTAL; null = sem mínimo
+  maxUses: integer("max_uses"), // null = ilimitado
+  usedCount: integer("used_count").notNull().default(0),
+  validFrom: timestamp("valid_from"), // null = já vale
+  validUntil: timestamp("valid_until"), // null = não expira
+  active: boolean("active").notNull().default(true),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
 });
 
 // ─── Config de formas de pagamento (roteamento por método) ───────────────────
@@ -238,7 +255,13 @@ export const insertAdminUserSchema = createInsertSchema(adminUsers).omit({
   passwordHash: true,
   createdAt: true,
 });
+export const insertCouponSchema = createInsertSchema(coupons).omit({
+  id: true,
+  createdAt: true,
+  usedCount: true, // nunca vem do cliente/admin
+});
 
+export type Coupon = typeof coupons.$inferSelect;
 export type PaymentTransaction = typeof paymentTransactions.$inferSelect;
 export type WebhookEventRow = typeof webhookEvents.$inferSelect;
 export type SubscriptionRow = typeof subscriptions.$inferSelect;

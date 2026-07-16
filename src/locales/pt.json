@@ -159,7 +159,17 @@
     "checkout": "Finalizar compra",
     "continue": "Continuar comprando",
     "shippingNote": "Frete e descontos calculados na finalização.",
-    "clear": "Esvaziar carrinho"
+    "clear": "Esvaziar carrinho",
+    "discount": "Desconto",
+    "couponPlaceholder": "Cupom de desconto",
+    "couponApply": "Aplicar",
+    "couponRemove": "Remover cupom",
+    "couponInvalid": "Cupom inválido.",
+    "couponNotStarted": "Cupom ainda não está válido.",
+    "couponExpired": "Cupom expirado.",
+    "couponExhausted": "Cupom esgotado.",
+    "couponNetwork": "Falha de conexão. Tente novamente.",
+    "couponMinOrder": "Válido para pedidos acima de {{min}}."
   },
   "checkout": {
     "title": "Finalizar pedido",

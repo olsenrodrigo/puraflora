@@ -159,7 +159,17 @@
     "checkout": "Checkout",
     "continue": "Continue shopping",
     "shippingNote": "Shipping and discounts calculated at checkout.",
-    "clear": "Empty cart"
+    "clear": "Empty cart",
+    "discount": "Discount",
+    "couponPlaceholder": "Discount code",
+    "couponApply": "Apply",
+    "couponRemove": "Remove coupon",
+    "couponInvalid": "Invalid coupon.",
+    "couponNotStarted": "Coupon is not valid yet.",
+    "couponExpired": "Coupon expired.",
+    "couponExhausted": "Coupon fully redeemed.",
+    "couponNetwork": "Connection failed. Try again.",
+    "couponMinOrder": "Valid for orders over {{min}}."
   },
   "checkout": {
     "title": "Checkout",

@@ -106,6 +106,8 @@ export const orderItems = pgTable("order_items", {
   quantity: integer("quantity").notNull(),
   unitPrice: numeric("unit_price", { precision: 10, scale: 2 }).notNull(),
   totalPrice: numeric("total_price", { precision: 10, scale: 2 }).notNull(),
+  bundleId: integer("bundle_id"), // preenchido quando o item veio de um kit
+  bundleLabel: text("bundle_label"), // nome do kit (snapshot p/ exibição no pedido)
 });
 
 // Cupons de desconto. Código sempre normalizado (trim + UPPERCASE) na escrita/leitura.
@@ -329,6 +331,38 @@ export type WebhookEventRow = typeof webhookEvents.$inferSelect;
 export type SubscriptionRow = typeof subscriptions.$inferSelect;
 export type AbandonedCheckoutRow = typeof abandonedCheckouts.$inferSelect;
 export type ProductReviewRow = typeof productReviews.$inferSelect;
+
+// Produtos relacionados (cross-sell manual) — curadoria pela loja.
+export const productRelations = pgTable("product_relations", {
+  id: serial("id").primaryKey(),
+  productId: integer("product_id").notNull(),
+  relatedProductId: integer("related_product_id").notNull(),
+  sortOrder: integer("sort_order").notNull().default(0),
+});
+
+// Kits ("compre junto") com desconto.
+export const bundles = pgTable("bundles", {
+  id: serial("id").primaryKey(),
+  slug: text("slug").notNull().unique(),
+  i18n: jsonb("i18n").$type<Record<string, { name: string; description?: string }>>().notNull(),
+  image: text("image"),
+  discountType: text("discount_type").notNull().default("percentage"), // percentage | fixed | fixed_price
+  discountValue: numeric("discount_value", { precision: 10, scale: 2 }).notNull(),
+  active: boolean("active").notNull().default(true),
+  sortOrder: integer("sort_order").notNull().default(0),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+  updatedAt: timestamp("updated_at").notNull().defaultNow(),
+});
+
+export const bundleItems = pgTable("bundle_items", {
+  id: serial("id").primaryKey(),
+  bundleId: integer("bundle_id").notNull(),
+  productId: integer("product_id").notNull(),
+  quantity: integer("quantity").notNull().default(1),
+});
+
+export type BundleRow = typeof bundles.$inferSelect;
+export type BundleItemRow = typeof bundleItems.$inferSelect;
 
 export type AdminUser = typeof adminUsers.$inferSelect;
 export type Category = typeof categories.$inferSelect;

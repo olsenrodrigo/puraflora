@@ -19,6 +19,7 @@ import { useCart } from "@/context/CartContext";
 import { Rating } from "@/components/ui/Rating";
 import ProductCard from "@/components/store/ProductCard";
 import ReviewsSection from "@/components/store/ReviewsSection";
+import BundleOffer, { type ApiBundle } from "@/components/store/BundleOffer";
 import { Reveal } from "@/components/ui/Reveal";
 import { brl } from "@/lib/utils";
 import { trackViewItem, useAnalyticsReady } from "@/lib/analytics";
@@ -32,9 +33,20 @@ export default function ProductDetail() {
   const { products: PRODUCTS } = useProducts();
   const [qty, setQty] = useState(1);
   const [added, setAdded] = useState(false);
+  const [apiBundles, setApiBundles] = useState<ApiBundle[]>([]);
   const analyticsOn = useAnalyticsReady();
 
   const product = PRODUCTS.find((p) => p.slug === (params.slug ?? ""));
+
+  // Kits que contêm este produto (para "compre junto")
+  useEffect(() => {
+    const slug = params.slug;
+    if (!slug) return;
+    fetch(`/api/store/products/${slug}/related`)
+      .then((r) => (r.ok ? r.json() : null))
+      .then((d) => setApiBundles(d?.bundles ?? []))
+      .catch(() => setApiBundles([]));
+  }, [params.slug]);
 
   useEffect(() => {
     setQty(1);
@@ -262,6 +274,11 @@ export default function ProductDetail() {
         <p className="mt-6 text-xs text-pf-ink-soft/70">
           {t("product.notMedicine")}
         </p>
+
+        {/* compre junto (kits) */}
+        {apiBundles.map((b) => (
+          <BundleOffer key={b.id} bundle={b} />
+        ))}
 
         {/* avaliações */}
         <ReviewsSection slug={product.slug} />

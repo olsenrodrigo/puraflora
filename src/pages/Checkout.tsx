@@ -66,7 +66,7 @@ const EMPTY: Form = {
 export default function Checkout() {
   const { t, i18n } = useTranslation();
   const lang = (i18n.language?.split("-")[0] as Lang) || "pt";
-  const { lines, subtotal, clear, coupon, discount, couponBelowMin, removeCoupon, cartToken } = useCart();
+  const { lines, bundles, subtotal, clear, coupon, discount, couponBelowMin, removeCoupon, cartToken } = useCart();
   const [recoverConsent, setRecoverConsent] = useState(false);
   const [form, setForm] = useState<Form>(EMPTY);
   const [touched, setTouched] = useState(false);
@@ -229,7 +229,7 @@ export default function Checkout() {
     );
   }
 
-  if (lines.length === 0) {
+  if (lines.length === 0 && bundles.length === 0) {
     return (
       <div className="flex min-h-[70vh] flex-col items-center justify-center gap-5 bg-pf-cream px-4 pt-24 text-center">
         <div className="flex h-20 w-20 items-center justify-center rounded-full bg-pf-green-100">
@@ -308,6 +308,7 @@ export default function Checkout() {
       unitPrice: l.product.price.toFixed(2),
       totalPrice: l.lineTotal.toFixed(2),
     })),
+    bundles: bundles.map((b) => ({ slug: b.slug, quantity: b.quantity })),
   });
 
   // Pagar online: cria o pedido no backend, obtém o número e vai pro passo de pagamento
@@ -415,9 +416,10 @@ export default function Checkout() {
       return;
     }
 
-    const itemLines = lines
-      .map((l) => `• ${l.quantity}x ${tp(l.product, lang).name} — ${brl(l.lineTotal)}`)
-      .join("\n");
+    const itemLines = [
+      ...lines.map((l) => `• ${l.quantity}x ${tp(l.product, lang).name} — ${brl(l.lineTotal)}`),
+      ...bundles.map((b) => `• ${b.quantity}x ${lang === "pt" ? "Kit" : "Bundle"} ${b.name} — ${brl(b.unitTotal * b.quantity)}`),
+    ].join("\n");
 
     const msg = [
       t("checkout.orderIntro"),

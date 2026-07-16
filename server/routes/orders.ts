@@ -1,8 +1,9 @@
 import { Router } from "express";
 import { z } from "zod";
-import { createOrderWithItems, getProductBySlug, validateCoupon, CouponExhaustedError, markAbandonedConverted } from "../storage";
+import { createOrderWithItems, getProductBySlug, validateCoupon, CouponExhaustedError, markAbandonedConverted, getBundleBySlug } from "../storage";
 import type { ProductRow } from "../../shared/schema";
 import { normalizeCouponCode } from "../../shared/coupon-utils";
+import { priceBundle, type BundleDiscountType } from "../../shared/bundle-pricing";
 
 // O cliente informa apenas slug + quantidade (+ frete escolhido). Preços,
 // subtotal e total são SEMPRE recalculados no servidor a partir do catálogo —
@@ -31,8 +32,10 @@ const orderSchema = z.object({
   // — nunca bloqueia o pedido inteiro.
   cartToken: z.string().uuid().optional().catch(undefined),
   // chaves extras (preços enviados pelo front) são ignoradas — recalculamos tudo
-  items: z.array(orderItemSchema).min(1),
-});
+  items: z.array(orderItemSchema).default([]),
+  // kits ("compre junto"): o servidor expande e re-preça a partir do catálogo
+  bundles: z.array(z.object({ slug: z.string().min(1), quantity: z.number().int().positive().max(20) })).optional(),
+}).refine((d) => d.items.length + (d.bundles?.length ?? 0) > 0, { message: "Pedido vazio" });
 
 function generateOrderNumber(): string {
   return `PF-${Date.now().toString(36).toUpperCase()}-${Math.random().toString(36).slice(2, 6).toUpperCase()}`;
@@ -56,11 +59,14 @@ export function ordersRouter(): Router {
     if (!parsed.success) {
       return res.status(400).json({ error: "Dados inválidos", details: parsed.error.flatten() });
     }
-    const { items, shippingAmount, shippingService, couponCode, cartToken, ...customer } = parsed.data;
+    const { items, bundles, shippingAmount, shippingService, couponCode, cartToken, ...customer } = parsed.data;
 
     try {
       // Recalcula preços a partir do catálogo (fonte de verdade)
-      const resolved = [];
+      const resolved: Array<{
+        productSlug: string; productName: string; quantity: number;
+        unitPrice: string; totalPrice: string; bundleId?: number; bundleLabel?: string;
+      }> = [];
       for (const raw of items) {
         const slug = (raw as { productSlug: string }).productSlug;
         const quantity = (raw as { quantity: number }).quantity;
@@ -77,6 +83,36 @@ export function ordersRouter(): Router {
           unitPrice: unitPrice.toFixed(2),
           totalPrice: totalPrice.toFixed(2),
         });
+      }
+
+      // Kits: o servidor expande em itens individuais, re-preça pelo catálogo e
+      // distribui o desconto pro-rata (fonte única: shared/bundle-pricing).
+      for (const b of bundles ?? []) {
+        const bundle = await getBundleBySlug(b.slug);
+        if (!bundle || !bundle.active) {
+          return res.status(422).json({ error: `Kit indisponível: ${b.slug}` });
+        }
+        if (bundle.components.length === 0 || bundle.components.some((c) => !c.active)) {
+          return res.status(422).json({ error: `Kit indisponível: ${b.slug}` });
+        }
+        const label = (bundle.i18n as Record<string, { name?: string }>)?.pt?.name ?? bundle.slug;
+        const pricing = priceBundle(
+          bundle.discountType as BundleDiscountType,
+          Number(bundle.discountValue),
+          bundle.components.map((c) => ({ productSlug: c.productSlug, unitPrice: c.unitPrice, quantity: c.quantity }))
+        );
+        for (let i = 0; i < pricing.components.length; i++) {
+          const comp = pricing.components[i];
+          resolved.push({
+            productSlug: comp.productSlug,
+            productName: bundle.components[i].productName,
+            quantity: comp.quantity * b.quantity,
+            unitPrice: comp.unitPrice.toFixed(2),
+            totalPrice: (Math.round(comp.lineTotal * b.quantity * 100) / 100).toFixed(2),
+            bundleId: bundle.id,
+            bundleLabel: label,
+          });
+        }
       }
 
       const subtotal = Math.round(resolved.reduce((s, it) => s + Number(it.totalPrice), 0) * 100) / 100;

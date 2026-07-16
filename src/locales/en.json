@@ -283,6 +283,11 @@
     "rights": "All rights reserved.",
     "disclaimer": "Products are dietary supplements, not medicines. They do not replace a balanced diet. Pregnant or nursing women and people under medical care should consult a health professional."
   },
+  "bundle": {
+    "add": "Add bundle",
+    "added": "Added!",
+    "save": "Save"
+  },
   "reviews": {
     "title": "Reviews",
     "one": "review",

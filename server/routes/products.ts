@@ -3,6 +3,7 @@ import { z } from "zod";
 import {
   listActiveProducts, listCategories, getStoreSettings, getProductBySlug,
   createReview, createReviewApproved, listApprovedReviews, getReviewAggregate, verifyPurchase,
+  listActiveBundles, listBundlesForProduct, getRelatedProducts,
 } from "../storage";
 import type { ProductRow, AnalyticsConfig } from "../../shared/schema";
 
@@ -89,6 +90,23 @@ export function productsRouter(): Router {
       },
       reviewsEnabled: settings?.reviewsEnabled !== false,
     });
+  });
+
+  // Kits ativos (para uma vitrine de "compre junto")
+  router.get("/bundles", async (_req, res) => {
+    res.set("Cache-Control", "public, max-age=120");
+    res.json(await listActiveBundles());
+  });
+
+  // Relacionados + kits de um produto (para a PDP)
+  router.get("/products/:slug/related", async (req, res) => {
+    const product = await getProductBySlug(req.params.slug);
+    if (!product) return res.status(404).json({ error: "Produto não encontrado" });
+    const [related, bundles] = await Promise.all([
+      getRelatedProducts(product.id),
+      listBundlesForProduct(product.id),
+    ]);
+    res.json({ related: related.map(toApiProduct), bundles });
   });
 
   // Reviews aprovadas + agregado de um produto (público, paginado)

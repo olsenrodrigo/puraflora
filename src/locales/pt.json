@@ -283,6 +283,11 @@
     "rights": "Todos os direitos reservados.",
     "disclaimer": "Os produtos são suplementos alimentares e não medicamentos. Não substituem uma alimentação equilibrada. Gestantes, lactantes e pessoas em acompanhamento devem consultar um profissional de saúde."
   },
+  "bundle": {
+    "add": "Adicionar kit",
+    "added": "Adicionado!",
+    "save": "Economize"
+  },
   "reviews": {
     "title": "Avaliações",
     "one": "avaliação",

@@ -7,6 +7,7 @@ import { productsRouter } from "./routes/products";
 import { cartsRouter } from "./routes/carts";
 import { adminCartsRouter } from "./routes/admin-carts";
 import { adminReviewsRouter } from "./routes/admin-reviews";
+import { adminBundlesRouter } from "./routes/admin-bundles";
 import { adminAuthRouter } from "./routes/admin-auth";
 import { adminProductsRouter } from "./routes/admin-products";
 import { ordersRouter } from "./routes/orders";
@@ -67,6 +68,7 @@ async function main() {
   app.use("/api/admin/payments", adminPaymentsRouter());
   app.use("/api/admin/coupons", adminCouponsRouter());
   app.use("/api/admin/reviews", adminReviewsRouter());
+  app.use("/api/admin/bundles", adminBundlesRouter());
   app.use("/api/payments", paymentsRouter());
   app.use("/api/webhooks", webhooksRouter());
   app.use("/api/orders", ordersRouter());

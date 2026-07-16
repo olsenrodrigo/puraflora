@@ -12,6 +12,9 @@ import {
   subscriptions,
   abandonedCheckouts,
   productReviews,
+  productRelations,
+  bundles,
+  bundleItems,
   coupons,
   type ProductRow,
   type Coupon,
@@ -887,6 +890,138 @@ export async function deleteReview(id: number) {
     const [row] = await trx.delete(productReviews).where(eq(productReviews.id, id)).returning();
     if (row) await recalcProductRatingTx(trx, row.productId);
     return row ?? null;
+  });
+}
+
+// --- kits (bundles) e produtos relacionados ---
+
+function productName(p: ProductRow): string {
+  const i18n = p.i18n as Record<string, { name?: string }> | null;
+  return i18n?.pt?.name ?? p.slug;
+}
+
+/** Componentes de um kit já enriquecidos com dados atuais do produto. */
+async function bundleComponents(bundleId: number) {
+  const items = await db
+    .select({ productId: bundleItems.productId, quantity: bundleItems.quantity })
+    .from(bundleItems)
+    .where(eq(bundleItems.bundleId, bundleId));
+  if (items.length === 0) return [];
+  const ids = items.map((i) => i.productId);
+  const prods = await db.select().from(products).where(inArray(products.id, ids));
+  const byId = new Map(prods.map((p) => [p.id, p]));
+  // Produto deletado/ausente NÃO é removido silenciosamente — vira placeholder
+  // inativo, para o pedido rejeitar (422) o kit incompleto em vez de re-precificar
+  // sem o componente sumido.
+  return items.map((it) => {
+    const p = byId.get(it.productId);
+    if (!p) {
+      return { productId: it.productId, productSlug: "", productName: "(indisponível)", image: null, active: false, unitPrice: 0, quantity: it.quantity };
+    }
+    return {
+      productId: p.id,
+      productSlug: p.slug,
+      productName: productName(p),
+      image: p.image,
+      active: p.active,
+      unitPrice: Number(p.price),
+      quantity: it.quantity,
+    };
+  });
+}
+
+async function enrichBundle(b: typeof bundles.$inferSelect) {
+  return { ...b, components: await bundleComponents(b.id) };
+}
+
+export async function listActiveBundles() {
+  const rows = await db.select().from(bundles).where(eq(bundles.active, true)).orderBy(bundles.sortOrder);
+  const enriched = await Promise.all(rows.map(enrichBundle));
+  // Não exibe kits com componente indisponível (produto inativo/deletado).
+  return enriched.filter((b) => b.components.length > 0 && b.components.every((c) => c.active));
+}
+
+export async function listAllBundlesAdmin() {
+  const rows = await db.select().from(bundles).orderBy(desc(bundles.createdAt));
+  return Promise.all(rows.map(enrichBundle));
+}
+
+export async function getBundleBySlug(slug: string) {
+  const rows = await db.select().from(bundles).where(eq(bundles.slug, slug));
+  if (!rows[0]) return null;
+  return enrichBundle(rows[0]);
+}
+
+/** Kits ATIVOS que contêm um produto (para exibir "compre junto" na PDP). */
+export async function listBundlesForProduct(productId: number) {
+  const links = await db
+    .select({ bundleId: bundleItems.bundleId })
+    .from(bundleItems)
+    .where(eq(bundleItems.productId, productId));
+  if (links.length === 0) return [];
+  const ids = Array.from(new Set(links.map((l) => l.bundleId)));
+  const rows = await db.select().from(bundles).where(and(inArray(bundles.id, ids), eq(bundles.active, true)));
+  const enriched = await Promise.all(rows.map(enrichBundle));
+  return enriched.filter((b) => b.components.length > 0 && b.components.every((c) => c.active));
+}
+
+export async function createBundleWithItems(
+  data: { slug: string; i18n: unknown; image?: string | null; discountType: string; discountValue: string; active?: boolean; sortOrder?: number },
+  items: Array<{ productId: number; quantity: number }>
+) {
+  return db.transaction(async (trx) => {
+    const [b] = await trx.insert(bundles).values(data as never).returning();
+    if (items.length) await trx.insert(bundleItems).values(items.map((it) => ({ ...it, bundleId: b.id })));
+    return b;
+  });
+}
+
+export async function updateBundleWithItems(
+  id: number,
+  data: Partial<{ slug: string; i18n: unknown; image: string | null; discountType: string; discountValue: string; active: boolean; sortOrder: number }>,
+  items?: Array<{ productId: number; quantity: number }>
+) {
+  return db.transaction(async (trx) => {
+    const [b] = await trx.update(bundles).set({ ...data, updatedAt: new Date() } as any).where(eq(bundles.id, id)).returning();
+    if (!b) return null;
+    if (items) {
+      await trx.delete(bundleItems).where(eq(bundleItems.bundleId, id));
+      if (items.length) await trx.insert(bundleItems).values(items.map((it) => ({ ...it, bundleId: id })));
+    }
+    return b;
+  });
+}
+
+export async function deleteBundle(id: number) {
+  return db.transaction(async (trx) => {
+    await trx.delete(bundleItems).where(eq(bundleItems.bundleId, id));
+    const [b] = await trx.delete(bundles).where(eq(bundles.id, id)).returning();
+    return b ?? null;
+  });
+}
+
+/** Produtos relacionados (curados) de um produto, na ordem definida. */
+export async function getRelatedProducts(productId: number) {
+  const links = await db
+    .select({ relatedProductId: productRelations.relatedProductId, sortOrder: productRelations.sortOrder })
+    .from(productRelations)
+    .where(eq(productRelations.productId, productId))
+    .orderBy(productRelations.sortOrder);
+  if (links.length === 0) return [];
+  const ids = links.map((l) => l.relatedProductId);
+  const prods = await db.select().from(products).where(and(inArray(products.id, ids), eq(products.active, true)));
+  const byId = new Map(prods.map((p) => [p.id, p]));
+  return links.map((l) => byId.get(l.relatedProductId)).filter(Boolean) as ProductRow[];
+}
+
+/** Substitui a lista de relacionados de um produto (transacional). */
+export async function setRelatedProducts(productId: number, relatedIds: number[]) {
+  return db.transaction(async (trx) => {
+    await trx.delete(productRelations).where(eq(productRelations.productId, productId));
+    const clean = relatedIds.filter((id) => id !== productId);
+    if (clean.length) {
+      await trx.insert(productRelations).values(clean.map((rid, i) => ({ productId, relatedProductId: rid, sortOrder: i })));
+    }
   });
 }
 

@@ -17,12 +17,12 @@ import { brl } from "@/lib/utils";
 export default function Cart() {
   const { t, i18n } = useTranslation();
   const lang = (i18n.language?.split("-")[0] as Lang) || "pt";
-  const { lines, subtotal, setQty, remove, clear, itemCount, coupon, discount } = useCart();
+  const { lines, bundles, subtotal, setQty, remove, removeBundle, clear, itemCount, coupon, discount } = useCart();
 
   const remaining = Math.max(0, FREE_SHIPPING_THRESHOLD - subtotal);
   const progress = Math.min(100, (subtotal / FREE_SHIPPING_THRESHOLD) * 100);
 
-  if (lines.length === 0) {
+  if (lines.length === 0 && bundles.length === 0) {
     return (
       <div className="flex min-h-[70vh] flex-col items-center justify-center gap-5 bg-pf-cream px-4 pt-24 text-center">
         <div className="flex h-20 w-20 items-center justify-center rounded-full bg-pf-green-100">
@@ -135,6 +135,28 @@ export default function Cart() {
                 );
               })}
             </ul>
+
+            {bundles.length > 0 && (
+              <ul className="mt-3 space-y-3">
+                {bundles.map((b) => (
+                  <li key={b.slug} className="flex items-center gap-4 rounded-2xl border-2 border-pf-green-700/20 bg-pf-green-50/40 p-4">
+                    <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-pf-green-700 text-pf-cream">📦</span>
+                    <div className="flex-1">
+                      <p className="font-semibold text-pf-green-900">
+                        {b.quantity}x {lang === "pt" ? "Kit" : "Bundle"} {b.name}
+                      </p>
+                      <p className="text-xs text-pf-ink-soft">{b.components.map((c) => `${c.quantity}x ${c.name}`).join(" + ")}</p>
+                    </div>
+                    <div className="text-right">
+                      <p className="font-semibold text-pf-green-800">{brl(b.unitTotal * b.quantity)}</p>
+                      <button onClick={() => removeBundle(b.slug)} className="text-xs text-pf-ink-soft hover:text-pf-clay">
+                        {t("cart.remove")}
+                      </button>
+                    </div>
+                  </li>
+                ))}
+              </ul>
+            )}
 
             <div className="mt-4 flex items-center justify-between">
               <Link

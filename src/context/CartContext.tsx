@@ -16,6 +16,17 @@ interface StoredItem {
   quantity: number;
 }
 
+// Snapshot de um kit no carrinho (preço de exibição; o servidor re-preça no pedido).
+export interface StoredBundle {
+  slug: string;
+  quantity: number;
+  name: string;
+  image?: string | null;
+  unitTotal: number; // preço do kit (1 unidade), já com desconto
+  originalTotal: number; // soma dos componentes sem desconto (1 unidade)
+  components: { name: string; quantity: number }[];
+}
+
 export interface CartLine {
   product: Product;
   quantity: number;
@@ -32,10 +43,13 @@ export interface AppliedCoupon {
 interface CartContextType {
   items: StoredItem[];
   lines: CartLine[];
+  bundles: StoredBundle[];
   cartToken: string;
   add: (slug: string, quantity?: number) => void;
   setQty: (slug: string, quantity: number) => void;
   remove: (slug: string) => void;
+  addBundle: (bundle: StoredBundle) => void;
+  removeBundle: (slug: string) => void;
   clear: () => void;
   itemCount: number;
   subtotal: number;
@@ -55,6 +69,19 @@ const CartContext = createContext<CartContextType | null>(null);
 const STORAGE_KEY = "pf_cart";
 const COUPON_KEY = "pf_coupon";
 const TOKEN_KEY = "pf_cart_token";
+const BUNDLES_KEY = "pf_bundles";
+
+function loadBundles(): StoredBundle[] {
+  try {
+    const raw = localStorage.getItem(BUNDLES_KEY);
+    if (!raw) return [];
+    const parsed = JSON.parse(raw);
+    if (!Array.isArray(parsed)) return [];
+    return parsed.filter((b) => typeof b?.slug === "string" && typeof b?.unitTotal === "number");
+  } catch {
+    return [];
+  }
+}
 
 // UUID v4 criptograficamente seguro (o token é uma capability — precisa ser
 // imprevisível). Sem Web Crypto seguro, devolve "" e a recuperação fica desligada.
@@ -114,10 +141,19 @@ function loadCoupon(): AppliedCoupon | null {
 
 export function CartProvider({ children }: { children: ReactNode }) {
   const [items, setItems] = useState<StoredItem[]>(load);
+  const [bundles, setBundles] = useState<StoredBundle[]>(loadBundles);
   const [coupon, setCoupon] = useState<AppliedCoupon | null>(loadCoupon);
   const [isOpen, setIsOpen] = useState(false);
   const [lastAdded, setLastAdded] = useState<string | null>(null);
   const [cartToken, setCartToken] = useState<string>(loadToken);
+
+  useEffect(() => {
+    try {
+      localStorage.setItem(BUNDLES_KEY, JSON.stringify(bundles));
+    } catch {
+      /* ignore */
+    }
+  }, [bundles]);
 
   useEffect(() => {
     try {
@@ -165,10 +201,26 @@ export function CartProvider({ children }: { children: ReactNode }) {
   const remove = (slug: string) =>
     setItems((prev) => prev.filter((i) => i.slug !== slug));
 
+  const addBundle = (bundle: StoredBundle) => {
+    setBundles((prev) => {
+      const existing = prev.find((b) => b.slug === bundle.slug);
+      if (existing) {
+        return prev.map((b) => (b.slug === bundle.slug ? { ...b, quantity: b.quantity + bundle.quantity } : b));
+      }
+      return [...prev, bundle];
+    });
+    setLastAdded(bundle.slug);
+    window.setTimeout(() => setLastAdded(null), 2200);
+  };
+
+  const removeBundle = (slug: string) =>
+    setBundles((prev) => prev.filter((b) => b.slug !== slug));
+
   const removeCoupon = () => setCoupon(null);
 
   const clear = () => {
     setItems([]);
+    setBundles([]);
     setCoupon(null); // pós-compra o cupom não vaza para a próxima compra
     // Rotaciona o token: o próximo carrinho é um novo checkout (o antigo já foi
     // convertido/registrado no servidor).
@@ -197,12 +249,16 @@ export function CartProvider({ children }: { children: ReactNode }) {
   }, [items]);
 
   const itemCount = useMemo(
-    () => items.reduce((s, i) => s + i.quantity, 0),
-    [items]
+    () => items.reduce((s, i) => s + i.quantity, 0) + bundles.reduce((s, b) => s + b.quantity, 0),
+    [items, bundles]
+  );
+  const bundleSubtotal = useMemo(
+    () => bundles.reduce((s, b) => s + b.unitTotal * b.quantity, 0),
+    [bundles]
   );
   const subtotal = useMemo(
-    () => lines.reduce((s, l) => s + l.lineTotal, 0),
-    [lines]
+    () => lines.reduce((s, l) => s + l.lineTotal, 0) + bundleSubtotal,
+    [lines, bundleSubtotal]
   );
 
   // desconto reativo: 0 se sem cupom ou abaixo do mínimo (cupom fica "armado")
@@ -319,10 +375,13 @@ export function CartProvider({ children }: { children: ReactNode }) {
   const value: CartContextType = {
     items,
     lines,
+    bundles,
     cartToken,
     add,
     setQty,
     remove,
+    addBundle,
+    removeBundle,
     clear,
     itemCount,
     subtotal,

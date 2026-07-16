@@ -179,6 +179,7 @@
     "name": "Full name",
     "email": "Email",
     "phone": "Phone / WhatsApp",
+    "recoverConsent": "I agree to be contacted via WhatsApp about this order if I don't complete it now.",
     "cep": "Zip code",
     "address": "Address",
     "number": "Number",

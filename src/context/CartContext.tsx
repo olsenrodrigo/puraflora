@@ -32,6 +32,7 @@ export interface AppliedCoupon {
 interface CartContextType {
   items: StoredItem[];
   lines: CartLine[];
+  cartToken: string;
   add: (slug: string, quantity?: number) => void;
   setQty: (slug: string, quantity: number) => void;
   remove: (slug: string) => void;
@@ -53,6 +54,37 @@ interface CartContextType {
 const CartContext = createContext<CartContextType | null>(null);
 const STORAGE_KEY = "pf_cart";
 const COUPON_KEY = "pf_coupon";
+const TOKEN_KEY = "pf_cart_token";
+
+// UUID v4 criptograficamente seguro (o token é uma capability — precisa ser
+// imprevisível). Sem Web Crypto seguro, devolve "" e a recuperação fica desligada.
+function newToken(): string {
+  try {
+    if (typeof crypto !== "undefined" && crypto.randomUUID) return crypto.randomUUID();
+    if (typeof crypto !== "undefined" && crypto.getRandomValues) {
+      const b = new Uint8Array(16);
+      crypto.getRandomValues(b);
+      b[6] = (b[6] & 0x0f) | 0x40;
+      b[8] = (b[8] & 0x3f) | 0x80;
+      const h = Array.from(b, (x) => x.toString(16).padStart(2, "0"));
+      return `${h[0]}${h[1]}${h[2]}${h[3]}-${h[4]}${h[5]}-${h[6]}${h[7]}-${h[8]}${h[9]}-${h[10]}${h[11]}${h[12]}${h[13]}${h[14]}${h[15]}`;
+    }
+  } catch {
+    /* sem crypto */
+  }
+  return "";
+}
+function loadToken(): string {
+  try {
+    const existing = localStorage.getItem(TOKEN_KEY);
+    if (existing) return existing;
+    const t = newToken();
+    if (t) localStorage.setItem(TOKEN_KEY, t); // não persiste token vazio
+    return t;
+  } catch {
+    return newToken();
+  }
+}
 
 function load(): StoredItem[] {
   try {
@@ -85,6 +117,7 @@ export function CartProvider({ children }: { children: ReactNode }) {
   const [coupon, setCoupon] = useState<AppliedCoupon | null>(loadCoupon);
   const [isOpen, setIsOpen] = useState(false);
   const [lastAdded, setLastAdded] = useState<string | null>(null);
+  const [cartToken, setCartToken] = useState<string>(loadToken);
 
   useEffect(() => {
     try {
@@ -137,6 +170,16 @@ export function CartProvider({ children }: { children: ReactNode }) {
   const clear = () => {
     setItems([]);
     setCoupon(null); // pós-compra o cupom não vaza para a próxima compra
+    // Rotaciona o token: o próximo carrinho é um novo checkout (o antigo já foi
+    // convertido/registrado no servidor).
+    const t = newToken();
+    try {
+      if (t) localStorage.setItem(TOKEN_KEY, t);
+      else localStorage.removeItem(TOKEN_KEY);
+    } catch {
+      /* ignore */
+    }
+    setCartToken(t);
   };
 
   const lines: CartLine[] = useMemo(() => {
@@ -207,6 +250,36 @@ export function CartProvider({ children }: { children: ReactNode }) {
     }
   };
 
+  // Restaura um carrinho abandonado: ?recover=<token> repovoa os itens e adota o
+  // token (para linkar a conversão). Roda antes do cupom (o snapshot pode ter um).
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const recover = params.get("recover");
+    if (!recover) return;
+    fetch(`/api/carts/abandoned/${encodeURIComponent(recover)}`)
+      .then((r) => (r.ok ? r.json() : null))
+      .then((d) => {
+        if (d && Array.isArray(d.items) && d.items.length) {
+          d.items.forEach((it: { productSlug: string; quantity: number }) => {
+            if (it?.productSlug) add(it.productSlug, it.quantity || 1);
+          });
+          if (d.couponCode) applyCoupon(d.couponCode);
+          try {
+            localStorage.setItem(TOKEN_KEY, recover);
+          } catch {
+            /* ignore */
+          }
+          setCartToken(recover);
+          setIsOpen(true);
+        }
+      })
+      .catch(() => {});
+    params.delete("recover");
+    const qs = params.toString();
+    window.history.replaceState(null, "", window.location.pathname + (qs ? `?${qs}` : ""));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
   // Link com cupom: ?cupom=XYZ (ou ?coupon=) em qualquer rota → aplica e limpa a URL
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
@@ -246,6 +319,7 @@ export function CartProvider({ children }: { children: ReactNode }) {
   const value: CartContextType = {
     items,
     lines,
+    cartToken,
     add,
     setQty,
     remove,

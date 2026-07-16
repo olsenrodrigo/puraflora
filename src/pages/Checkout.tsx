@@ -66,7 +66,8 @@ const EMPTY: Form = {
 export default function Checkout() {
   const { t, i18n } = useTranslation();
   const lang = (i18n.language?.split("-")[0] as Lang) || "pt";
-  const { lines, subtotal, clear, coupon, discount, couponBelowMin, removeCoupon } = useCart();
+  const { lines, subtotal, clear, coupon, discount, couponBelowMin, removeCoupon, cartToken } = useCart();
+  const [recoverConsent, setRecoverConsent] = useState(false);
   const [form, setForm] = useState<Form>(EMPTY);
   const [touched, setTouched] = useState(false);
   const [sent, setSent] = useState(false);
@@ -88,6 +89,36 @@ export default function Checkout() {
       .then(setPayCfg)
       .catch(() => setPayCfg(null));
   }, []);
+
+  // Captura de carrinho abandonado (só com consentimento). Debounce ~2,5s para
+  // não gravar a cada tecla; upsert idempotente por cartToken no servidor.
+  useEffect(() => {
+    if (!recoverConsent || !cartToken) return; // sem token seguro → sem captura
+    const phone = form.phone.replace(/\D/g, "");
+    if (phone.length < 8 || lines.length === 0) return;
+    const handle = window.setTimeout(() => {
+      fetch("/api/carts/abandoned", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          cartToken,
+          customerName: form.name || null,
+          customerPhone: form.phone,
+          customerEmail: form.email || null,
+          couponCode: coupon && !couponBelowMin ? coupon.code : null,
+          consent: true,
+          items: lines.map((l) => ({
+            productSlug: l.product.slug,
+            productName: tp(l.product, lang).name,
+            quantity: l.quantity,
+            unitPrice: l.product.price.toFixed(2),
+          })),
+        }),
+      }).catch(() => {});
+    }, 2500);
+    return () => window.clearTimeout(handle);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [recoverConsent, form.name, form.phone, form.email, lines, coupon, couponBelowMin]);
 
   // Itens no formato de analytics (usado no begin_checkout e no purchase)
   const analyticsItems = (): AnalyticsItem[] =>
@@ -269,6 +300,7 @@ export default function Checkout() {
     shippingAmount: shippingCost.toFixed(2),
     total: total.toFixed(2),
     couponCode: coupon && !couponBelowMin ? coupon.code : null,
+    cartToken,
     items: lines.map((l) => ({
       productSlug: l.product.slug,
       productName: tp(l.product, lang).name,
@@ -466,6 +498,22 @@ export default function Checkout() {
                   error={touched && !form.phone.trim() ? t("checkout.required") : ""}
                 />
               </div>
+              <label className="mt-4 flex cursor-pointer items-start gap-2.5 text-sm text-pf-ink-soft">
+                <input
+                  type="checkbox"
+                  checked={recoverConsent}
+                  onChange={(e) => {
+                    const checked = e.target.checked;
+                    setRecoverConsent(checked);
+                    // Revogação LGPD: ao desmarcar, apaga o que já foi capturado.
+                    if (!checked && cartToken) {
+                      fetch(`/api/carts/abandoned/${cartToken}`, { method: "DELETE" }).catch(() => {});
+                    }
+                  }}
+                  className="mt-0.5 h-4 w-4 accent-pf-green-700"
+                />
+                <span>{t("checkout.recoverConsent")}</span>
+              </label>
             </fieldset>
 
             {/* shipping */}

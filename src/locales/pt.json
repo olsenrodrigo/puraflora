@@ -179,6 +179,7 @@
     "name": "Nome completo",
     "email": "E-mail",
     "phone": "Telefone / WhatsApp",
+    "recoverConsent": "Aceito receber contato por WhatsApp sobre este pedido, caso eu não finalize agora.",
     "cep": "CEP",
     "address": "Endereço",
     "number": "Número",

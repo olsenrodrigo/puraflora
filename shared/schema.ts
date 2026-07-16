@@ -170,6 +170,8 @@ export const storeSettings = pgTable("store_settings", {
   mercadoPagoPublicKey: text("mercado_pago_public_key"),
   paymentConfig: jsonb("payment_config").$type<PaymentConfig>(),
   analyticsConfig: jsonb("analytics_config").$type<AnalyticsConfig>(),
+  // Mensagem de recuperação de carrinho (placeholders: {nome} {itens} {link} {cupom})
+  abandonedMessageTemplate: text("abandoned_message_template"),
   pixKey: text("pix_key"),
   maxInstallments: integer("max_installments").notNull().default(12),
   freeInstallments: integer("free_installments").notNull().default(3),
@@ -250,6 +252,28 @@ export const subscriptions = pgTable("subscriptions", {
   updatedAt: timestamp("updated_at").notNull().defaultNow(),
 });
 
+// Checkouts abandonados — capturados no checkout quando há contato + consentimento
+// (LGPD). Uma linha por cartToken; recuperação via link ?recover=<token>.
+export const abandonedCheckouts = pgTable("abandoned_checkouts", {
+  id: serial("id").primaryKey(),
+  cartToken: text("cart_token").notNull().unique(), // uuid gerado no front
+  customerName: text("customer_name"),
+  customerPhone: text("customer_phone").notNull(),
+  customerEmail: text("customer_email"),
+  itemsSnapshot: jsonb("items_snapshot").notNull(), // [{productSlug, productName, quantity, unitPrice}]
+  subtotal: numeric("subtotal", { precision: 10, scale: 2 }).notNull().default("0"),
+  couponCode: text("coupon_code"),
+  consentAt: timestamp("consent_at").notNull(), // LGPD: linha só existe com consentimento
+  status: text("status").notNull().default("open"), // open | contacted | converted | expired
+  contactCount: integer("contact_count").notNull().default(0),
+  contactedAt: timestamp("contacted_at"),
+  recoveryCouponCode: text("recovery_coupon_code"),
+  recoveredOrderId: integer("recovered_order_id"),
+  lastSeenAt: timestamp("last_seen_at").notNull().defaultNow(),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+  updatedAt: timestamp("updated_at").notNull().defaultNow(),
+});
+
 export const insertProductSchema = createInsertSchema(products).omit({
   id: true,
   createdAt: true,
@@ -282,6 +306,7 @@ export type Coupon = typeof coupons.$inferSelect;
 export type PaymentTransaction = typeof paymentTransactions.$inferSelect;
 export type WebhookEventRow = typeof webhookEvents.$inferSelect;
 export type SubscriptionRow = typeof subscriptions.$inferSelect;
+export type AbandonedCheckoutRow = typeof abandonedCheckouts.$inferSelect;
 
 export type AdminUser = typeof adminUsers.$inferSelect;
 export type Category = typeof categories.$inferSelect;

@@ -10,6 +10,7 @@ interface SettingsState {
   contactWhatsapp: string;
   cnpj: string;
   address: string;
+  abandonedMessageTemplate: string;
   mercadoPagoPublicKey: string;
   pixKey: string;
   maxInstallments: string;
@@ -29,6 +30,7 @@ const EMPTY: SettingsState = {
   contactWhatsapp: "",
   cnpj: "",
   address: "",
+  abandonedMessageTemplate: "",
   mercadoPagoPublicKey: "",
   pixKey: "",
   maxInstallments: "12",
@@ -66,6 +68,7 @@ export default function AdminSettings() {
           contactWhatsapp: d.contactWhatsapp ?? "",
           cnpj: d.cnpj ?? "",
           address: d.address ?? "",
+          abandonedMessageTemplate: d.abandonedMessageTemplate ?? "",
           mercadoPagoPublicKey: d.mercadoPagoPublicKey ?? "",
           pixKey: d.pixKey ?? "",
           maxInstallments: String(d.maxInstallments ?? 12),
@@ -99,6 +102,7 @@ export default function AdminSettings() {
       contactWhatsapp: form.contactWhatsapp || null,
       cnpj: form.cnpj || null,
       address: form.address || null,
+      abandonedMessageTemplate: form.abandonedMessageTemplate || null,
       mercadoPagoPublicKey: form.mercadoPagoPublicKey || null,
       pixKey: form.pixKey || null,
       maxInstallments: Number(form.maxInstallments),
@@ -175,6 +179,19 @@ export default function AdminSettings() {
             <label className="block sm:col-span-2">
               <span className="mb-1.5 block text-sm font-semibold text-pf-ink">Endereço</span>
               <input value={form.address} onChange={(e) => setForm((f) => ({ ...f, address: e.target.value }))} className="input" />
+            </label>
+            <label className="block sm:col-span-2">
+              <span className="mb-1.5 block text-sm font-semibold text-pf-ink">Mensagem de recuperação de carrinho</span>
+              <textarea
+                value={form.abandonedMessageTemplate}
+                onChange={(e) => setForm((f) => ({ ...f, abandonedMessageTemplate: e.target.value }))}
+                rows={4}
+                className="input font-mono text-sm"
+                placeholder={"Oi {nome}! 👋 Vi que você deixou itens no carrinho:\n\n{itens}\n\nPosso te ajudar a finalizar? {link}{cupom}"}
+              />
+              <span className="mt-1 block text-xs text-pf-ink-soft">
+                Placeholders: <code>{"{nome}"}</code> <code>{"{itens}"}</code> <code>{"{link}"}</code> <code>{"{cupom}"}</code>. Em branco usa o texto padrão.
+              </span>
             </label>
           </div>
         ) : (

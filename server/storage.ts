@@ -10,6 +10,7 @@ import {
   paymentTransactions,
   webhookEvents,
   subscriptions,
+  abandonedCheckouts,
   coupons,
   type ProductRow,
   type Coupon,
@@ -617,6 +618,149 @@ export async function updateSubscriptionRow(
 
 export async function listSubscriptionsAdmin() {
   return db.select().from(subscriptions).orderBy(desc(subscriptions.createdAt));
+}
+
+// --- carrinhos abandonados ---
+
+/**
+ * Upsert por cartToken. Uma linha por token; reatualiza contato/itens/subtotal
+ * e o lastSeenAt. Nunca cria linha sem consentAt (garantido pela rota). Não
+ * rebaixa status já "converted".
+ */
+export async function upsertAbandonedCheckout(data: {
+  cartToken: string;
+  customerName?: string | null;
+  customerPhone: string;
+  customerEmail?: string | null;
+  itemsSnapshot: unknown;
+  subtotal: string;
+  couponCode?: string | null;
+  consentAt: Date;
+}) {
+  const rows = await db
+    .insert(abandonedCheckouts)
+    .values({
+      cartToken: data.cartToken,
+      customerName: data.customerName ?? null,
+      customerPhone: data.customerPhone,
+      customerEmail: data.customerEmail ?? null,
+      itemsSnapshot: data.itemsSnapshot as never,
+      subtotal: data.subtotal,
+      couponCode: data.couponCode ?? null,
+      consentAt: data.consentAt,
+      lastSeenAt: new Date(),
+    })
+    .onConflictDoUpdate({
+      target: abandonedCheckouts.cartToken,
+      set: {
+        customerName: data.customerName ?? null,
+        customerPhone: data.customerPhone,
+        customerEmail: data.customerEmail ?? null,
+        itemsSnapshot: data.itemsSnapshot as never,
+        subtotal: data.subtotal,
+        couponCode: data.couponCode ?? null,
+        lastSeenAt: new Date(),
+        updatedAt: new Date(),
+      },
+      // não sobrescreve carrinhos já convertidos
+      setWhere: sql`${abandonedCheckouts.status} <> 'converted'`,
+    })
+    .returning();
+  return rows[0];
+}
+
+export async function getAbandonedByToken(cartToken: string) {
+  const rows = await db
+    .select()
+    .from(abandonedCheckouts)
+    .where(eq(abandonedCheckouts.cartToken, cartToken));
+  return rows[0];
+}
+
+export async function getAbandonedById(id: number) {
+  const rows = await db.select().from(abandonedCheckouts).where(eq(abandonedCheckouts.id, id));
+  return rows[0];
+}
+
+/**
+ * Marca como convertido quando o pedido é criado a partir do carrinho.
+ * Só converte se o telefone bater (evita converter o token de outra pessoa) e se
+ * ainda não estava convertido (primeira conversão vence; não sobrescreve o orderId).
+ * `phoneDigits` = telefone do PEDIDO já normalizado (só dígitos).
+ */
+export async function markAbandonedConverted(cartToken: string, orderId: number, phoneDigits: string) {
+  await db
+    .update(abandonedCheckouts)
+    .set({ status: "converted", recoveredOrderId: orderId, updatedAt: new Date() })
+    .where(
+      and(
+        eq(abandonedCheckouts.cartToken, cartToken),
+        sql`${abandonedCheckouts.status} <> 'converted'`,
+        sql`regexp_replace(${abandonedCheckouts.customerPhone}, '[^0-9]', '', 'g') = ${phoneDigits}`
+      )
+    );
+}
+
+export async function listAbandonedCheckoutsAdmin(opts: {
+  status?: string;
+  minAgeHours?: number;
+  maxAgeDays?: number;
+} = {}) {
+  const conds = [] as unknown[];
+  if (opts.status) conds.push(eq(abandonedCheckouts.status, opts.status));
+  if (opts.minAgeHours && opts.minAgeHours > 0)
+    conds.push(sql`${abandonedCheckouts.lastSeenAt} <= now() - (${opts.minAgeHours} * interval '1 hour')`);
+  if (opts.maxAgeDays && opts.maxAgeDays > 0)
+    conds.push(sql`${abandonedCheckouts.lastSeenAt} >= now() - (${opts.maxAgeDays} * interval '1 day')`);
+  const where = conds.length ? and(...(conds as never[])) : undefined;
+  return db
+    .select()
+    .from(abandonedCheckouts)
+    .where(where as never)
+    .orderBy(desc(abandonedCheckouts.lastSeenAt));
+}
+
+/**
+ * Registra um contato de recuperação (só se ainda não convertido). Retorna a
+ * linha atualizada, ou null se já estava convertido/inexistente. O guard no
+ * WHERE evita mandar mensagem para um carrinho que acabou de virar pedido.
+ */
+export async function registerAbandonedContact(id: number, couponCode?: string | null) {
+  const rows = await db
+    .update(abandonedCheckouts)
+    .set({
+      status: "contacted",
+      contactCount: sql`${abandonedCheckouts.contactCount} + 1`,
+      contactedAt: new Date(),
+      recoveryCouponCode: couponCode ?? null,
+      updatedAt: new Date(),
+    })
+    .where(and(eq(abandonedCheckouts.id, id), sql`${abandonedCheckouts.status} <> 'converted'`))
+    .returning();
+  return rows[0] ?? null;
+}
+
+export async function updateAbandonedStatus(id: number, status: string) {
+  // Nunca sai de "converted" — reverter para open/etc. anularia os guards de
+  // concorrência (contato/upsert). Um carrinho convertido é estado final.
+  const rows = await db
+    .update(abandonedCheckouts)
+    .set({ status, updatedAt: new Date() })
+    .where(and(eq(abandonedCheckouts.id, id), sql`${abandonedCheckouts.status} <> 'converted'`))
+    .returning();
+  return rows[0] ?? null;
+}
+
+/** Revogação LGPD: remove o carrinho abandonado pelo token (capability). */
+export async function deleteAbandonedByToken(cartToken: string) {
+  await db.delete(abandonedCheckouts).where(eq(abandonedCheckouts.cartToken, cartToken));
+}
+
+/** Expurgo LGPD: remove carrinhos abandonados mais antigos que N dias. */
+export async function purgeExpiredAbandoned(days: number) {
+  await db
+    .delete(abandonedCheckouts)
+    .where(sql`${abandonedCheckouts.lastSeenAt} < now() - (${days} * interval '1 day')`);
 }
 
 // --- pagamento do pedido ---

@@ -4,6 +4,8 @@ import path from "node:path";
 import express from "express";
 import { shippingRouter } from "./routes/shipping";
 import { productsRouter } from "./routes/products";
+import { cartsRouter } from "./routes/carts";
+import { adminCartsRouter } from "./routes/admin-carts";
 import { adminAuthRouter } from "./routes/admin-auth";
 import { adminProductsRouter } from "./routes/admin-products";
 import { ordersRouter } from "./routes/orders";
@@ -19,7 +21,7 @@ import { couponsRouter } from "./routes/coupons";
 import { adminCouponsRouter } from "./routes/admin-coupons";
 import { getAsaasConfig, startReconciler } from "./asaas-integration";
 import { hashPassword } from "./auth";
-import { countAdmins, createAdminUser } from "./storage";
+import { countAdmins, createAdminUser, purgeExpiredAbandoned } from "./storage";
 
 async function seedDefaultAdmin() {
   try {
@@ -52,6 +54,8 @@ async function main() {
 
   app.use("/api/shipping", shippingRouter());
   app.use("/api/store", productsRouter());
+  app.use("/api/carts", cartsRouter());
+  app.use("/api/admin/carts", adminCartsRouter());
   app.use("/api/admin", adminAuthRouter());
   app.use("/api/admin/products", adminProductsRouter());
   app.use("/api/admin/orders", adminOrdersRouter());
@@ -67,6 +71,14 @@ async function main() {
   app.use("/api/coupons", couponsRouter());
 
   await seedDefaultAdmin();
+
+  // Expurgo LGPD dos carrinhos abandonados (retenção 30 dias): no boot + diário.
+  const purgeAbandoned = () =>
+    purgeExpiredAbandoned(30).catch((e) =>
+      console.error("[carts] ALERTA: expurgo LGPD de carrinhos abandonados falhou:", e?.message)
+    );
+  purgeAbandoned();
+  setInterval(purgeAbandoned, 24 * 60 * 60 * 1000).unref();
   startReconciler(getAsaasConfig());
 
   if (process.env.NODE_ENV === "production") {

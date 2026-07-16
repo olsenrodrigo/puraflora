@@ -1,6 +1,6 @@
 import { Router } from "express";
 import { z } from "zod";
-import { createOrderWithItems, getProductBySlug, validateCoupon, CouponExhaustedError } from "../storage";
+import { createOrderWithItems, getProductBySlug, validateCoupon, CouponExhaustedError, markAbandonedConverted } from "../storage";
 import type { ProductRow } from "../../shared/schema";
 import { normalizeCouponCode } from "../../shared/coupon-utils";
 
@@ -27,6 +27,9 @@ const orderSchema = z.object({
   shippingService: z.string().nullable().optional(),
   shippingAmount: z.union([z.string(), z.number()]).optional(),
   couponCode: z.string().max(64).nullable().optional(), // só o código; o desconto é recalculado no servidor
+  // token do carrinho abandonado (opcional). Inválido/corrompido vira undefined
+  // — nunca bloqueia o pedido inteiro.
+  cartToken: z.string().uuid().optional().catch(undefined),
   // chaves extras (preços enviados pelo front) são ignoradas — recalculamos tudo
   items: z.array(orderItemSchema).min(1),
 });
@@ -53,7 +56,7 @@ export function ordersRouter(): Router {
     if (!parsed.success) {
       return res.status(400).json({ error: "Dados inválidos", details: parsed.error.flatten() });
     }
-    const { items, shippingAmount, shippingService, couponCode, ...customer } = parsed.data;
+    const { items, shippingAmount, shippingService, couponCode, cartToken, ...customer } = parsed.data;
 
     try {
       // Recalcula preços a partir do catálogo (fonte de verdade)
@@ -108,6 +111,14 @@ export function ordersRouter(): Router {
         resolved,
         appliedCode ? { code: appliedCode, subtotal } : undefined
       );
+      // Marca o carrinho abandonado como convertido (só se o telefone bater —
+      // evita converter o token de outra pessoa). Não bloqueia a resposta.
+      if (cartToken) {
+        const phoneDigits = (customer.customerPhone || "").replace(/\D/g, "");
+        markAbandonedConverted(cartToken, order.id, phoneDigits).catch((e) =>
+          console.error("[carts] markAbandonedConverted falhou:", e?.message)
+        );
+      }
       res.status(201).json({
         orderNumber: order.orderNumber,
         total: order.total,

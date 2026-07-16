@@ -99,11 +99,15 @@ export default function Hero() {
                       </p>
 
                       <div className="mt-6 flex items-center gap-4">
-                        <Rating
-                          value={product.rating}
-                          reviews={product.reviews}
-                        />
-                        <span className="h-4 w-px bg-pf-green-900/15" />
+                        {product.reviews > 0 && (
+                          <>
+                            <Rating
+                              value={product.rating}
+                              reviews={product.reviews}
+                            />
+                            <span className="h-4 w-px bg-pf-green-900/15" />
+                          </>
+                        )}
                         <div className="flex items-baseline gap-2">
                           {hasDiscount && (
                             <span className="text-sm text-pf-ink-soft/70 line-through">

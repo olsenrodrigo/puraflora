@@ -49,7 +49,8 @@ export const products = pgTable("products", {
   categoryId: text("category_id").notNull(),
   price: numeric("price", { precision: 10, scale: 2 }).notNull(),
   compareAtPrice: numeric("compare_at_price", { precision: 10, scale: 2 }),
-  rating: numeric("rating", { precision: 2, scale: 1 }).notNull().default("4.8"),
+  // Agregado denormalizado de avaliações reais (recalculado na moderação).
+  rating: numeric("rating", { precision: 2, scale: 1 }).notNull().default("0"),
   reviews: integer("reviews").notNull().default(0),
   featured: boolean("featured").notNull().default(false),
   badge: text("badge"), // "bestSeller" | "new" | null
@@ -178,6 +179,8 @@ export const storeSettings = pgTable("store_settings", {
   monthlyInterestRate: numeric("monthly_interest_rate", { precision: 5, scale: 4 })
     .notNull()
     .default("0.0199"),
+  reviewsEnabled: boolean("reviews_enabled").notNull().default(true),
+  reviewsRequireModeration: boolean("reviews_require_moderation").notNull().default(true),
   updatedAt: timestamp("updated_at").notNull().defaultNow(),
 });
 
@@ -274,6 +277,24 @@ export const abandonedCheckouts = pgTable("abandoned_checkouts", {
   updatedAt: timestamp("updated_at").notNull().defaultNow(),
 });
 
+// Avaliações de produtos. O e-mail nunca é exibido publicamente (só p/ verificação).
+export const productReviews = pgTable("product_reviews", {
+  id: serial("id").primaryKey(),
+  productId: integer("product_id").notNull(),
+  rating: integer("rating").notNull(), // 1..5
+  authorName: text("author_name").notNull(),
+  authorEmail: text("author_email"), // interno — nunca vai ao público
+  title: text("title"),
+  comment: text("comment"),
+  status: text("status").notNull().default("pending"), // pending | approved | rejected
+  verifiedPurchase: boolean("verified_purchase").notNull().default(false),
+  adminReply: text("admin_reply"),
+  locale: text("locale").notNull().default("pt"),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+  moderatedAt: timestamp("moderated_at"),
+  moderatedBy: text("moderated_by"),
+});
+
 export const insertProductSchema = createInsertSchema(products).omit({
   id: true,
   createdAt: true,
@@ -307,6 +328,7 @@ export type PaymentTransaction = typeof paymentTransactions.$inferSelect;
 export type WebhookEventRow = typeof webhookEvents.$inferSelect;
 export type SubscriptionRow = typeof subscriptions.$inferSelect;
 export type AbandonedCheckoutRow = typeof abandonedCheckouts.$inferSelect;
+export type ProductReviewRow = typeof productReviews.$inferSelect;
 
 export type AdminUser = typeof adminUsers.$inferSelect;
 export type Category = typeof categories.$inferSelect;

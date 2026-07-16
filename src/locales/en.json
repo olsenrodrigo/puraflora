@@ -283,6 +283,25 @@
     "rights": "All rights reserved.",
     "disclaimer": "Products are dietary supplements, not medicines. They do not replace a balanced diet. Pregnant or nursing women and people under medical care should consult a health professional."
   },
+  "reviews": {
+    "title": "Reviews",
+    "one": "review",
+    "many": "reviews",
+    "empty": "No reviews yet. Be the first to review!",
+    "write": "Write a review",
+    "thanksPending": "Thank you! Your review was submitted and will appear after moderation.",
+    "thanksApproved": "Thank you for your review!",
+    "yourRating": "Your rating",
+    "name": "Your name",
+    "emailOptional": "Email (optional)",
+    "orderOptional": "Order number (optional, to verify purchase)",
+    "comment": "Tell us about your experience...",
+    "cancel": "Cancel",
+    "send": "Submit review",
+    "verified": "Verified purchase",
+    "storeReply": "Store reply",
+    "error": "Could not submit your review. Please try again."
+  },
   "consent": {
     "title": "Privacy",
     "text": "We use cookies and analytics pixels to understand how the store is used and improve your experience. You can accept or decline — these tools only load with your consent.",

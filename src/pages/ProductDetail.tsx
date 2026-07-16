@@ -18,6 +18,7 @@ import { useProducts } from "@/context/ProductsContext";
 import { useCart } from "@/context/CartContext";
 import { Rating } from "@/components/ui/Rating";
 import ProductCard from "@/components/store/ProductCard";
+import ReviewsSection from "@/components/store/ReviewsSection";
 import { Reveal } from "@/components/ui/Reveal";
 import { brl } from "@/lib/utils";
 import { trackViewItem, useAnalyticsReady } from "@/lib/analytics";
@@ -149,7 +150,7 @@ export default function ProductDetail() {
 
             <div className="mt-4 flex items-center gap-4">
               <Rating value={product.rating} reviews={product.reviews} size={16} />
-              <span className="text-sm text-pf-ink-soft">· {text.size}</span>
+              <span className="text-sm text-pf-ink-soft">{product.reviews > 0 ? "· " : ""}{text.size}</span>
             </div>
 
             <div className="mt-6 flex items-end gap-3">
@@ -261,6 +262,28 @@ export default function ProductDetail() {
         <p className="mt-6 text-xs text-pf-ink-soft/70">
           {t("product.notMedicine")}
         </p>
+
+        {/* avaliações */}
+        <ReviewsSection slug={product.slug} />
+
+        {/* SEO: AggregateRating só quando há avaliações reais (guideline do Google) */}
+        {product.reviews > 0 && (
+          <script
+            type="application/ld+json"
+            dangerouslySetInnerHTML={{
+              __html: JSON.stringify({
+                "@context": "https://schema.org",
+                "@type": "Product",
+                name: text.name,
+                aggregateRating: {
+                  "@type": "AggregateRating",
+                  ratingValue: product.rating,
+                  reviewCount: product.reviews,
+                },
+              }),
+            }}
+          />
+        )}
 
         {/* related */}
         {related.length > 0 && (

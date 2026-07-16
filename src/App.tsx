@@ -27,6 +27,7 @@ import AdminSettings from "@/pages/admin/AdminSettings";
 import AdminIntegrations from "@/pages/admin/AdminIntegrations";
 import AdminSubscriptions from "@/pages/admin/AdminSubscriptions";
 import AdminAbandonedCarts from "@/pages/admin/AdminAbandonedCarts";
+import AdminReviews from "@/pages/admin/AdminReviews";
 import AdminCoupons from "@/pages/admin/AdminCoupons";
 import AdminUsers from "@/pages/admin/AdminUsers";
 
@@ -68,6 +69,7 @@ export default function App() {
           <Route path="/admin/pedidos/:id" component={() => <AdminLayout><AdminOrderDetail /></AdminLayout>} />
           <Route path="/admin/assinaturas" component={() => <AdminLayout><AdminSubscriptions /></AdminLayout>} />
           <Route path="/admin/carrinhos" component={() => <AdminLayout><AdminAbandonedCarts /></AdminLayout>} />
+          <Route path="/admin/avaliacoes" component={() => <AdminLayout><AdminReviews /></AdminLayout>} />
           <Route path="/admin/cupons" component={() => <AdminLayout><AdminCoupons /></AdminLayout>} />
           <Route path="/admin/relatorios" component={() => <AdminLayout><AdminReports /></AdminLayout>} />
           <Route path="/admin/configuracoes" component={() => <AdminLayout><AdminSettings /></AdminLayout>} />

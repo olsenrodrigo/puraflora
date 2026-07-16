@@ -14,6 +14,7 @@ import {
   Repeat,
   Ticket,
   ShoppingCart,
+  MessageSquare,
   X,
   type LucideIcon,
 } from "lucide-react";
@@ -40,6 +41,7 @@ const NAV: NavSection[] = [
       { href: "/admin/produtos", label: "Produtos", icon: Package, roles: ["admin", "financeiro", "operacao"] },
       { href: "/admin/destaques", label: "Destaques", icon: Star, roles: ["admin", "operacao"] },
       { href: "/admin/categorias", label: "Categorias", icon: Tags, roles: ["admin", "operacao"] },
+      { href: "/admin/avaliacoes", label: "Avaliações", icon: MessageSquare, roles: ["admin", "operacao"] },
     ],
   },
   {

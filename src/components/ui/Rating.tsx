@@ -12,6 +12,8 @@ export function Rating({
   size?: number;
   className?: string;
 }) {
+  // Sem avaliações reais: não exibe estrelas (evita nota fake).
+  if (reviews === 0) return null;
   return (
     <span className={cn("inline-flex items-center gap-1.5", className)}>
       <span className="inline-flex" aria-hidden>

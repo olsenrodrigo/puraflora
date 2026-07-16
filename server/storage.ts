@@ -11,6 +11,7 @@ import {
   webhookEvents,
   subscriptions,
   abandonedCheckouts,
+  productReviews,
   coupons,
   type ProductRow,
   type Coupon,
@@ -761,6 +762,149 @@ export async function purgeExpiredAbandoned(days: number) {
   await db
     .delete(abandonedCheckouts)
     .where(sql`${abandonedCheckouts.lastSeenAt} < now() - (${days} * interval '1 day')`);
+}
+
+// --- avaliações de produtos ---
+
+export async function createReview(data: typeof productReviews.$inferInsert) {
+  const rows = await db.insert(productReviews).values(data).returning();
+  return rows[0];
+}
+
+/** Reviews aprovadas de um produto (paginado). Nunca devolve authorEmail. */
+export async function listApprovedReviews(productId: number, limit = 10, offset = 0) {
+  return db
+    .select({
+      id: productReviews.id,
+      rating: productReviews.rating,
+      authorName: productReviews.authorName,
+      title: productReviews.title,
+      comment: productReviews.comment,
+      verifiedPurchase: productReviews.verifiedPurchase,
+      adminReply: productReviews.adminReply,
+      createdAt: productReviews.createdAt,
+    })
+    .from(productReviews)
+    .where(and(eq(productReviews.productId, productId), eq(productReviews.status, "approved")))
+    .orderBy(desc(productReviews.createdAt))
+    .limit(limit)
+    .offset(offset);
+}
+
+/** Agregado (média, total e distribuição 1..5) das reviews aprovadas. */
+export async function getReviewAggregate(productId: number) {
+  const rows = await db
+    .select({ rating: productReviews.rating })
+    .from(productReviews)
+    .where(and(eq(productReviews.productId, productId), eq(productReviews.status, "approved")));
+  const distribution = { 1: 0, 2: 0, 3: 0, 4: 0, 5: 0 } as Record<number, number>;
+  let sum = 0;
+  for (const r of rows) {
+    if (r.rating >= 1 && r.rating <= 5) distribution[r.rating] += 1;
+    sum += r.rating;
+  }
+  const count = rows.length;
+  return { count, average: count ? Math.round((sum / count) * 10) / 10 : 0, distribution };
+}
+
+export async function listReviewsAdmin(opts: { status?: string; limit?: number; offset?: number } = {}) {
+  const where = opts.status ? eq(productReviews.status, opts.status) : undefined;
+  return db
+    .select()
+    .from(productReviews)
+    .where(where as never)
+    .orderBy(desc(productReviews.createdAt))
+    .limit(opts.limit ?? 100)
+    .offset(opts.offset ?? 0);
+}
+
+export async function countPendingReviews() {
+  const rows = await db
+    .select({ n: sql<number>`count(*)` })
+    .from(productReviews)
+    .where(eq(productReviews.status, "pending"));
+  return Number(rows[0]?.n ?? 0);
+}
+
+/** Recalcula o agregado denormalizado em products (dentro de uma transação). */
+async function recalcProductRatingTx(trx: any, productId: number) {
+  // Serializa moderações/edições concorrentes DO MESMO produto: quem chegar
+  // primeiro trava a linha; o segundo espera e recalcula sobre o estado já commitado.
+  await trx.execute(sql`SELECT id FROM ${products} WHERE ${products.id} = ${productId} FOR UPDATE`);
+  const rows = await trx
+    .select({ rating: productReviews.rating })
+    .from(productReviews)
+    .where(and(eq(productReviews.productId, productId), eq(productReviews.status, "approved")));
+  const count = rows.length;
+  const avg = count ? rows.reduce((s: number, r: { rating: number }) => s + r.rating, 0) / count : 0;
+  await trx
+    .update(products)
+    .set({ rating: avg.toFixed(1), reviews: count })
+    .where(eq(products.id, productId));
+}
+
+/**
+ * Modera uma review (aprovar/rejeitar + resposta) e recalcula o agregado do
+ * produto na MESMA transação (consistência sob moderações concorrentes).
+ */
+export async function moderateReview(
+  id: number,
+  patch: { status: string; adminReply?: string | null },
+  moderatedBy: string
+) {
+  return db.transaction(async (trx) => {
+    const [updated] = await trx
+      .update(productReviews)
+      .set({
+        status: patch.status,
+        adminReply: patch.adminReply ?? undefined,
+        moderatedAt: new Date(),
+        moderatedBy,
+      })
+      .where(eq(productReviews.id, id))
+      .returning();
+    if (!updated) return null;
+    await recalcProductRatingTx(trx, updated.productId);
+    return updated;
+  });
+}
+
+export async function recalcProductRating(productId: number) {
+  return db.transaction((trx) => recalcProductRatingTx(trx, productId));
+}
+
+/** Cria uma review JÁ aprovada e recalcula o agregado na MESMA transação. */
+export async function createReviewApproved(data: typeof productReviews.$inferInsert) {
+  return db.transaction(async (trx) => {
+    const [row] = await trx.insert(productReviews).values({ ...data, status: "approved" }).returning();
+    await recalcProductRatingTx(trx, row.productId);
+    return row;
+  });
+}
+
+export async function deleteReview(id: number) {
+  return db.transaction(async (trx) => {
+    const [row] = await trx.delete(productReviews).where(eq(productReviews.id, id)).returning();
+    if (row) await recalcProductRatingTx(trx, row.productId);
+    return row ?? null;
+  });
+}
+
+/** Confere se o e-mail comprou o produto naquele pedido (para verifiedPurchase). */
+export async function verifyPurchase(orderNumber: string, email: string, productSlug: string): Promise<boolean> {
+  const rows = await db
+    .select({ id: orders.id })
+    .from(orders)
+    .innerJoin(orderItems, eq(orderItems.orderId, orders.id))
+    .where(
+      and(
+        eq(orders.orderNumber, orderNumber),
+        sql`lower(${orders.customerEmail}) = lower(${email})`,
+        eq(orderItems.productSlug, productSlug)
+      )
+    )
+    .limit(1);
+  return rows.length > 0;
 }
 
 // --- pagamento do pedido ---

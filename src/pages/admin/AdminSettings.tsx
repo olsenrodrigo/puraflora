@@ -11,6 +11,8 @@ interface SettingsState {
   cnpj: string;
   address: string;
   abandonedMessageTemplate: string;
+  reviewsEnabled: boolean;
+  reviewsRequireModeration: boolean;
   mercadoPagoPublicKey: string;
   pixKey: string;
   maxInstallments: string;
@@ -31,6 +33,8 @@ const EMPTY: SettingsState = {
   cnpj: "",
   address: "",
   abandonedMessageTemplate: "",
+  reviewsEnabled: true,
+  reviewsRequireModeration: true,
   mercadoPagoPublicKey: "",
   pixKey: "",
   maxInstallments: "12",
@@ -69,6 +73,8 @@ export default function AdminSettings() {
           cnpj: d.cnpj ?? "",
           address: d.address ?? "",
           abandonedMessageTemplate: d.abandonedMessageTemplate ?? "",
+          reviewsEnabled: d.reviewsEnabled !== false,
+          reviewsRequireModeration: d.reviewsRequireModeration !== false,
           mercadoPagoPublicKey: d.mercadoPagoPublicKey ?? "",
           pixKey: d.pixKey ?? "",
           maxInstallments: String(d.maxInstallments ?? 12),
@@ -103,6 +109,8 @@ export default function AdminSettings() {
       cnpj: form.cnpj || null,
       address: form.address || null,
       abandonedMessageTemplate: form.abandonedMessageTemplate || null,
+      reviewsEnabled: form.reviewsEnabled,
+      reviewsRequireModeration: form.reviewsRequireModeration,
       mercadoPagoPublicKey: form.mercadoPagoPublicKey || null,
       pixKey: form.pixKey || null,
       maxInstallments: Number(form.maxInstallments),
@@ -193,6 +201,17 @@ export default function AdminSettings() {
                 Placeholders: <code>{"{nome}"}</code> <code>{"{itens}"}</code> <code>{"{link}"}</code> <code>{"{cupom}"}</code>. Em branco usa o texto padrão.
               </span>
             </label>
+            <div className="sm:col-span-2 space-y-2 border-t border-pf-border pt-4">
+              <span className="block text-sm font-semibold text-pf-ink">Avaliações de produtos</span>
+              <label className="flex cursor-pointer items-center gap-2.5 text-sm text-pf-ink-soft">
+                <input type="checkbox" checked={form.reviewsEnabled} onChange={(e) => setForm((f) => ({ ...f, reviewsEnabled: e.target.checked }))} className="h-4 w-4 accent-pf-green-700" />
+                Permitir que clientes avaliem produtos
+              </label>
+              <label className="flex cursor-pointer items-center gap-2.5 text-sm text-pf-ink-soft">
+                <input type="checkbox" checked={form.reviewsRequireModeration} onChange={(e) => setForm((f) => ({ ...f, reviewsRequireModeration: e.target.checked }))} className="h-4 w-4 accent-pf-green-700" />
+                Exigir moderação antes de publicar (recomendado)
+              </label>
+            </div>
           </div>
         ) : (
           <div className="grid gap-4 sm:grid-cols-2">

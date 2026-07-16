@@ -283,6 +283,25 @@
     "rights": "Todos os direitos reservados.",
     "disclaimer": "Os produtos são suplementos alimentares e não medicamentos. Não substituem uma alimentação equilibrada. Gestantes, lactantes e pessoas em acompanhamento devem consultar um profissional de saúde."
   },
+  "reviews": {
+    "title": "Avaliações",
+    "one": "avaliação",
+    "many": "avaliações",
+    "empty": "Ainda não há avaliações. Seja o primeiro a avaliar!",
+    "write": "Escrever avaliação",
+    "thanksPending": "Obrigado! Sua avaliação foi enviada e aparecerá após moderação.",
+    "thanksApproved": "Obrigado pela sua avaliação!",
+    "yourRating": "Sua nota",
+    "name": "Seu nome",
+    "emailOptional": "E-mail (opcional)",
+    "orderOptional": "Nº do pedido (opcional, para verificar a compra)",
+    "comment": "Conte como foi sua experiência...",
+    "cancel": "Cancelar",
+    "send": "Enviar avaliação",
+    "verified": "Compra verificada",
+    "storeReply": "Resposta da loja",
+    "error": "Não foi possível enviar sua avaliação. Tente novamente."
+  },
   "consent": {
     "title": "Privacidade",
     "text": "Usamos cookies e pixels de análise para entender como a loja é usada e melhorar sua experiência. Você pode aceitar ou recusar — só carregamos essas ferramentas com o seu consentimento.",

@@ -27,7 +27,9 @@ import {
   getTransactionsByOrder,
   createSubscriptionRow,
   getProductBySlug,
+  getStoreSettings,
 } from "../storage";
+import { resolvePaymentConfig, methodConfigFor } from "../payment-config";
 import type { ProductRow } from "../../shared/schema";
 
 const creditCardSchema = z.object({
@@ -158,12 +160,18 @@ export function paymentsRouter(): Router {
     console.log(`[asaas] conectado (${cfg.env})`);
   }
 
-  router.get("/config", (_req, res) => {
+  router.get("/config", async (_req, res) => {
+    const settings = await getStoreSettings();
+    const pc = resolvePaymentConfig(settings);
+    const methods = (["PIX", "BOLETO", "CREDIT_CARD"] as const).filter(
+      (m) => methodConfigFor(pc, m)?.enabled
+    );
     res.json({
       enabled: true,
       mock: cfg.mock,
       env: cfg.env,
-      methods: ["PIX", "BOLETO", "CREDIT_CARD"],
+      methods,
+      cardMode: pc.credit_card.mode ?? "embedded",
       maxInstallments: cfg.maxInstallments,
       subscriptionsEnabled: true,
     });
@@ -183,6 +191,16 @@ export function paymentsRouter(): Router {
       if (order.paymentStatus === "paid") {
         return res.status(409).json({ error: "Este pedido já está pago" });
       }
+
+      // Config de pagamento: valida se o método está habilitado + modo do cartão.
+      const settings = await getStoreSettings();
+      const payCfg = resolvePaymentConfig(settings);
+      const mCfg = methodConfigFor(payCfg, input.billingType);
+      if (!mCfg || !mCfg.enabled) {
+        return res.status(400).json({ error: `Forma de pagamento indisponível: ${input.billingType}` });
+      }
+      // Cartão via checkout hospedado do Asaas (o cartão é digitado na página do Asaas).
+      const cardRedirect = input.billingType === "CREDIT_CARD" && mCfg.mode === "redirect";
 
       // Reaproveita uma cobrança aberta do mesmo método (evita duplicar em
       // duplo-clique/reenvio). Cartão nunca reaproveita (autoriza na hora).
@@ -231,7 +249,8 @@ export function paymentsRouter(): Router {
       });
 
       const isCard = input.billingType === "CREDIT_CARD";
-      if (isCard && !input.creditCard) {
+      // No modo redirect o cartão é digitado na página do Asaas — não exigimos os dados aqui.
+      if (isCard && !cardRedirect && !input.creditCard) {
         return res.status(400).json({ error: "Dados do cartão são obrigatórios" });
       }
 
@@ -263,10 +282,10 @@ export function paymentsRouter(): Router {
         dueDate: input.billingType === "BOLETO" ? isoInDays(3) : todayIso(),
         description: `Pedido ${order.orderNumber} — PuraFlora`,
         externalReference: order.orderNumber,
-        ...(isCard && input.installmentCount && input.installmentCount > 1
+        ...(isCard && !cardRedirect && input.installmentCount && input.installmentCount > 1
           ? { installmentCount: input.installmentCount, totalValue: value }
           : {}),
-        ...(isCard
+        ...(isCard && !cardRedirect
           ? {
               creditCard: input.creditCard,
               creditCardHolderInfo: input.creditCardHolderInfo,
@@ -309,6 +328,8 @@ export function paymentsRouter(): Router {
         paymentStatus: mapPaymentStatus(payment.status),
         invoiceUrl: payment.invoiceUrl,
       };
+      // Cartão via redirect: o front manda o cliente pra página do Asaas.
+      if (cardRedirect) response.redirectUrl = payment.invoiceUrl;
       if (input.billingType === "PIX") {
         const qr = await getPixQrCode(cfg, payment.id);
         // persiste o copia-e-cola (usa a linha retornada — cobre insert e conflito)

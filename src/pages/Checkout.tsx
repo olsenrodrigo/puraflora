@@ -20,6 +20,8 @@ interface PaymentConfig {
   enabled: boolean;
   mock: boolean;
   maxInstallments: number;
+  methods?: Array<"PIX" | "BOLETO" | "CREDIT_CARD">;
+  cardMode?: "embedded" | "redirect";
 }
 
 interface ShipOption {
@@ -160,6 +162,8 @@ export default function Checkout() {
             total={payStep.total}
             customer={payStep.customer}
             maxInstallments={payCfg?.maxInstallments ?? 12}
+            methods={payCfg?.methods}
+            cardMode={payCfg?.cardMode}
           />
         </div>
       </div>

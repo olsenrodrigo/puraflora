@@ -105,6 +105,26 @@ export const orderItems = pgTable("order_items", {
   totalPrice: numeric("total_price", { precision: 10, scale: 2 }).notNull(),
 });
 
+// ─── Config de formas de pagamento (roteamento por método) ───────────────────
+export type PaymentMethodKey = "pix" | "boleto" | "credit_card";
+export type PaymentGatewayId = "asaas" | "mercadopago";
+export type PaymentCardMode = "embedded" | "redirect";
+export interface PaymentMethodConfig {
+  enabled: boolean;
+  gateway?: PaymentGatewayId; // no PuraFlora o processador é o Asaas
+  mode?: PaymentCardMode; // só cartão: embutido (Asaas direto) x redirect (Asaas hospedado)
+}
+export interface PaymentConfig {
+  pix: PaymentMethodConfig;
+  boleto: PaymentMethodConfig;
+  credit_card: PaymentMethodConfig;
+}
+export const DEFAULT_PAYMENT_CONFIG: PaymentConfig = {
+  pix: { enabled: true, gateway: "asaas" },
+  boleto: { enabled: true, gateway: "asaas" },
+  credit_card: { enabled: true, gateway: "asaas", mode: "embedded" },
+};
+
 export const storeSettings = pgTable("store_settings", {
   id: serial("id").primaryKey(), // linha única (singleton, sempre id=1)
   storeName: text("store_name").notNull().default("PuraFlora"),
@@ -115,6 +135,7 @@ export const storeSettings = pgTable("store_settings", {
   address: text("address"),
   mercadoPagoToken: text("mercado_pago_token"), // secreto — nunca devolver ao cliente
   mercadoPagoPublicKey: text("mercado_pago_public_key"),
+  paymentConfig: jsonb("payment_config").$type<PaymentConfig>(),
   pixKey: text("pix_key"),
   maxInstallments: integer("max_installments").notNull().default(12),
   freeInstallments: integer("free_installments").notNull().default(3),

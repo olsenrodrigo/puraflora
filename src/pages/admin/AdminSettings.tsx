@@ -15,6 +15,11 @@ interface SettingsState {
   maxInstallments: string;
   freeInstallments: string;
   monthlyInterestRate: string;
+  paymentConfig: {
+    pix: { enabled: boolean };
+    boleto: { enabled: boolean };
+    credit_card: { enabled: boolean; mode: "embedded" | "redirect" };
+  };
 }
 
 const EMPTY: SettingsState = {
@@ -29,6 +34,11 @@ const EMPTY: SettingsState = {
   maxInstallments: "12",
   freeInstallments: "3",
   monthlyInterestRate: "0.0199",
+  paymentConfig: {
+    pix: { enabled: true },
+    boleto: { enabled: true },
+    credit_card: { enabled: true, mode: "embedded" },
+  },
 };
 
 export default function AdminSettings() {
@@ -61,6 +71,14 @@ export default function AdminSettings() {
           maxInstallments: String(d.maxInstallments ?? 12),
           freeInstallments: String(d.freeInstallments ?? 3),
           monthlyInterestRate: String(d.monthlyInterestRate ?? "0.0199"),
+          paymentConfig: {
+            pix: { enabled: d.paymentConfig?.pix?.enabled ?? true },
+            boleto: { enabled: d.paymentConfig?.boleto?.enabled ?? true },
+            credit_card: {
+              enabled: d.paymentConfig?.credit_card?.enabled ?? true,
+              mode: d.paymentConfig?.credit_card?.mode === "redirect" ? "redirect" : "embedded",
+            },
+          },
         });
         setHasToken(!!d.hasToken);
         setTokenHint(d.tokenHint ?? null);
@@ -86,6 +104,7 @@ export default function AdminSettings() {
       maxInstallments: Number(form.maxInstallments),
       freeInstallments: Number(form.freeInstallments),
       monthlyInterestRate: form.monthlyInterestRate,
+      paymentConfig: form.paymentConfig,
     };
     if (tokenInput) payload.mercadoPagoToken = tokenInput;
 
@@ -102,6 +121,12 @@ export default function AdminSettings() {
     setSuccess(true);
     setTimeout(() => setSuccess(false), 2500);
   };
+
+  const setPay = (method: string, patch: any) =>
+    setForm((f) => ({
+      ...f,
+      paymentConfig: { ...f.paymentConfig, [method]: { ...(f.paymentConfig as any)[method], ...patch } },
+    }));
 
   if (loading) return <p className="text-pf-ink-soft">Carregando...</p>;
 
@@ -154,6 +179,37 @@ export default function AdminSettings() {
           </div>
         ) : (
           <div className="grid gap-4 sm:grid-cols-2">
+            <div className="sm:col-span-2">
+              <span className="mb-1.5 block text-sm font-semibold text-pf-ink">Formas de pagamento aceitas</span>
+              <div className="space-y-2">
+                {[
+                  { key: "pix", label: "PIX", card: false },
+                  { key: "boleto", label: "Boleto", card: false },
+                  { key: "credit_card", label: "Cartão de crédito", card: true },
+                ].map((row) => {
+                  const c = (form.paymentConfig as any)[row.key];
+                  return (
+                    <div key={row.key} className="flex flex-wrap items-center gap-3 rounded-xl border border-pf-border p-3">
+                      <label className="flex min-w-[150px] items-center gap-2 cursor-pointer">
+                        <input type="checkbox" checked={c.enabled} onChange={(e) => setPay(row.key, { enabled: e.target.checked })} />
+                        <span className="text-sm font-semibold text-pf-ink">{row.label}</span>
+                      </label>
+                      {row.card && (
+                        <label className="flex items-center gap-2 text-sm text-pf-ink-soft">
+                          Onde paga
+                          <select value={c.mode} disabled={!c.enabled} onChange={(e) => setPay(row.key, { mode: e.target.value })}
+                            className="rounded-lg border border-pf-border px-2 py-1 text-sm disabled:opacity-50">
+                            <option value="embedded">Embutido (cartão no site)</option>
+                            <option value="redirect">Redirect (página do Asaas)</option>
+                          </select>
+                        </label>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+              <p className="mt-2 text-xs text-pf-ink-soft">Processador: Asaas. PIX e boleto aparecem no site; o cartão pode ser embutido ou hospedado (redirect) no Asaas.</p>
+            </div>
             <label className="block sm:col-span-2">
               <span className="mb-1.5 block text-sm font-semibold text-pf-ink">
                 Token de acesso Mercado Pago {hasToken && <span className="font-normal text-pf-ink-soft">(salvo: {tokenHint})</span>}

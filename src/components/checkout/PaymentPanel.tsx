@@ -29,6 +29,7 @@ interface CheckoutResult {
   invoiceUrl?: string;
   pix?: PixResult;
   boleto?: BoletoResult;
+  redirectUrl?: string;
 }
 
 interface Props {
@@ -36,6 +37,8 @@ interface Props {
   total: number;
   customer: { name: string; phone: string; email: string };
   maxInstallments: number;
+  methods?: Method[];
+  cardMode?: "embedded" | "redirect";
 }
 
 const METHOD_LABELS: Record<Method, string> = {
@@ -62,8 +65,15 @@ function CopyButton({ text, label }: { text: string; label: string }) {
   );
 }
 
-export default function PaymentPanel({ orderNumber, total, customer, maxInstallments }: Props) {
-  const [method, setMethod] = useState<Method>("PIX");
+export default function PaymentPanel({ orderNumber, total, customer, maxInstallments, methods, cardMode }: Props) {
+  const allowed: Method[] = methods && methods.length ? methods : ["PIX", "BOLETO", "CREDIT_CARD"];
+  const [method, setMethod] = useState<Method>(allowed[0]);
+  const cardRedirect = method === "CREDIT_CARD" && cardMode === "redirect";
+  // corrige o método selecionado se a config só carregar depois
+  useEffect(() => {
+    if (!allowed.includes(method)) setMethod(allowed[0]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [methods]);
   const [cpf, setCpf] = useState("");
   const [card, setCard] = useState({
     holderName: "",
@@ -107,7 +117,7 @@ export default function PaymentPanel({ orderNumber, total, customer, maxInstallm
       setError("Informe um CPF ou CNPJ válido.");
       return;
     }
-    if (method === "CREDIT_CARD") {
+    if (method === "CREDIT_CARD" && !cardRedirect) {
       if (!card.holderName || card.number.replace(/\D/g, "").length < 13 || !card.ccv) {
         setError("Preencha os dados do cartão.");
         return;
@@ -120,7 +130,7 @@ export default function PaymentPanel({ orderNumber, total, customer, maxInstallm
         billingType: method,
         cpfCnpj: cpfDigits,
       };
-      if (method === "CREDIT_CARD") {
+      if (method === "CREDIT_CARD" && !cardRedirect) {
         body.installmentCount = installments;
         body.creditCard = {
           holderName: card.holderName,
@@ -146,6 +156,11 @@ export default function PaymentPanel({ orderNumber, total, customer, maxInstallm
       const data = await res.json();
       if (!res.ok) {
         setError(data.error || "Não foi possível gerar o pagamento.");
+        return;
+      }
+      // Cartão via redirect: vai pra página segura do Asaas.
+      if (data.redirectUrl) {
+        window.location.href = data.redirectUrl;
         return;
       }
       setResult(data);
@@ -189,8 +204,8 @@ export default function PaymentPanel({ orderNumber, total, customer, maxInstallm
       {!result ? (
         <>
           {/* seletor de método */}
-          <div className="mt-5 grid grid-cols-3 gap-2">
-            {(Object.keys(METHOD_LABELS) as Method[]).map((m) => {
+          <div className="mt-5 grid gap-2" style={{ gridTemplateColumns: `repeat(${allowed.length}, minmax(0, 1fr))` }}>
+            {allowed.map((m) => {
               const Icon = m === "PIX" ? QrCode : m === "BOLETO" ? BarcodeIcon : CreditCard;
               return (
                 <button
@@ -225,7 +240,13 @@ export default function PaymentPanel({ orderNumber, total, customer, maxInstallm
           </label>
 
           {/* cartão */}
-          {method === "CREDIT_CARD" && (
+          {method === "CREDIT_CARD" && cardRedirect && (
+            <div className="mt-4 rounded-xl border border-pf-border bg-pf-cream/40 p-4 text-sm text-pf-ink-soft">
+              Você será redirecionado para a página segura do Asaas para inserir os dados do cartão. Seus dados de cartão não passam por este site.
+            </div>
+          )}
+
+          {method === "CREDIT_CARD" && !cardRedirect && (
             <div className="mt-4 grid grid-cols-2 gap-3">
               <CardField label="Nome no cartão" value={card.holderName} onChange={(v) => setCard((c) => ({ ...c, holderName: v }))} className="col-span-2" />
               <CardField label="Número do cartão" value={card.number} onChange={(v) => setCard((c) => ({ ...c, number: v }))} className="col-span-2" placeholder="0000 0000 0000 0000" />

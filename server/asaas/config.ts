@@ -17,6 +17,8 @@ export interface AsaasConfig {
   webhookToken: string;
   /** URL pública do endpoint de webhook (para registro via API). */
   webhookUrl: string;
+  /** E-mail de notificação exigido pela Asaas ao registrar o webhook. */
+  webhookEmail: string;
   /** Gerar etiqueta SmartEnvios automaticamente ao confirmar pagamento. */
   autoLabel: boolean;
   /** Intervalo do poller de reconciliação em minutos (0 = desligado). */
@@ -43,6 +45,7 @@ export function loadConfig(env: NodeJS.ProcessEnv): AsaasConfig {
     userAgent: env.ASAAS_USER_AGENT || "PuraFlora",
     webhookToken: env.ASAAS_WEBHOOK_TOKEN || "",
     webhookUrl: env.ASAAS_WEBHOOK_URL || "",
+    webhookEmail: env.ASAAS_WEBHOOK_EMAIL || env.SENDER_EMAIL || "",
     autoLabel: env.ASAAS_AUTO_LABEL === "1",
     reconcileMinutes: Number(env.ASAAS_RECONCILE_MINUTES ?? 5) || 0,
     maxInstallments: Number(env.ASAAS_MAX_INSTALLMENTS ?? 12) || 12,

@@ -273,6 +273,7 @@ export async function registerWebhook(
   const input: WebhookConfigInput = {
     name: "PuraFlora",
     url: cfg.webhookUrl,
+    email: cfg.webhookEmail,
     enabled: true,
     interrupted: false,
     apiVersion: 3,

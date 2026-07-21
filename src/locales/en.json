@@ -302,6 +302,16 @@
     "rights": "All rights reserved.",
     "disclaimer": "Products are dietary supplements, not medicines. They do not replace a balanced diet. Pregnant or nursing women and people under medical care should consult a health professional."
   },
+  "webchat": {
+    "title": "Chat with PuraFlora",
+    "status": "We usually reply quickly",
+    "greeting": "Hi! 🌿 How can we help you today? Talk to us on WhatsApp.",
+    "cta": "Chat on WhatsApp",
+    "hint": "Support Monday to Friday, 9am–6pm",
+    "greetingMsg": "Hi! I came from the PuraFlora website and I have a question.",
+    "open": "Open WhatsApp support",
+    "close": "Close"
+  },
   "bundle": {
     "add": "Add bundle",
     "added": "Added!",

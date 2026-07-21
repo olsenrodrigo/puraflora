@@ -1154,7 +1154,10 @@ export function getProduct(slug: string): Product | undefined {
 }
 
 export const FREE_SHIPPING_THRESHOLD = 199;
-export const WHATSAPP_NUMBER = "5511999999999"; // placeholder — substituir pelo número real
+// Número de contato da PuraFlora. Formato internacional (55 + DDD + número) para
+// os links wa.me; WHATSAPP_DISPLAY é a versão formatada para exibição.
+export const WHATSAPP_NUMBER = "5516957825568";
+export const WHATSAPP_DISPLAY = "(16) 95782-5568";
 
 // ── Peso e dimensões de embalagem (para cotação de frete) ───────────────────
 export interface PackageDims {

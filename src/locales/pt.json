@@ -302,6 +302,16 @@
     "rights": "Todos os direitos reservados.",
     "disclaimer": "Os produtos são suplementos alimentares e não medicamentos. Não substituem uma alimentação equilibrada. Gestantes, lactantes e pessoas em acompanhamento devem consultar um profissional de saúde."
   },
+  "webchat": {
+    "title": "Fale com a PuraFlora",
+    "status": "Costumamos responder rápido",
+    "greeting": "Olá! 🌿 Como podemos ajudar você hoje? Fale com a gente pelo WhatsApp.",
+    "cta": "Conversar no WhatsApp",
+    "hint": "Atendimento de segunda a sexta, 9h às 18h",
+    "greetingMsg": "Olá! Vim pelo site da PuraFlora e gostaria de tirar uma dúvida.",
+    "open": "Abrir atendimento no WhatsApp",
+    "close": "Fechar"
+  },
   "bundle": {
     "add": "Adicionar kit",
     "added": "Adicionado!",

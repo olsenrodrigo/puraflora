@@ -1,8 +1,12 @@
 import { Link, useLocation } from "wouter";
 import { useTranslation } from "react-i18next";
-import { Instagram, Facebook, Mail, MessageCircle } from "lucide-react";
+import { Instagram, Facebook, Mail } from "lucide-react";
 import Logo from "@/components/brand/Logo";
+import { WhatsAppIcon } from "@/components/icons/Social";
+import { WHATSAPP_NUMBER, WHATSAPP_DISPLAY } from "@/data/catalog";
 import { scrollToId } from "@/lib/utils";
+
+const WHATSAPP_LINK = `https://wa.me/${WHATSAPP_NUMBER}`;
 
 export default function Footer() {
   const { t } = useTranslation();
@@ -31,20 +35,24 @@ export default function Footer() {
             </p>
             <div className="mt-5 flex gap-2.5">
               {[
-                { icon: Instagram, label: "Instagram" },
-                { icon: Facebook, label: "Facebook" },
-                { icon: MessageCircle, label: "WhatsApp" },
-                { icon: Mail, label: "E-mail" },
-              ].map(({ icon: Icon, label }) => (
-                <a
-                  key={label}
-                  href="#"
-                  aria-label={label}
-                  className="flex h-10 w-10 items-center justify-center rounded-full border border-pf-cream/15 text-pf-cream/80 transition-colors hover:border-pf-gold-500 hover:text-pf-gold-300"
-                >
-                  <Icon size={17} />
-                </a>
-              ))}
+                { icon: Instagram, label: "Instagram", href: "#" },
+                { icon: Facebook, label: "Facebook", href: "#" },
+                { icon: WhatsAppIcon, label: "WhatsApp", href: WHATSAPP_LINK },
+                { icon: Mail, label: "E-mail", href: "mailto:ola@puraflora.com.br" },
+              ].map(({ icon: Icon, label, href }) => {
+                const external = href.startsWith("http");
+                return (
+                  <a
+                    key={label}
+                    href={href}
+                    aria-label={label}
+                    {...(external ? { target: "_blank", rel: "noopener noreferrer" } : {})}
+                    className="flex h-10 w-10 items-center justify-center rounded-full border border-pf-cream/15 text-pf-cream/80 transition-colors hover:border-pf-gold-500 hover:text-pf-gold-300"
+                  >
+                    <Icon size={17} />
+                  </a>
+                );
+              })}
             </div>
           </div>
 
@@ -83,10 +91,12 @@ export default function Footer() {
 
           <FooterCol title={t("footer.contact")}>
             <a
-              href="https://wa.me/5511999999999"
+              href={WHATSAPP_LINK}
+              target="_blank"
+              rel="noopener noreferrer"
               className="text-sm text-pf-cream/70 transition-colors hover:text-pf-gold-300"
             >
-              WhatsApp: (11) 99999-9999
+              WhatsApp: {WHATSAPP_DISPLAY}
             </a>
             <a
               href="mailto:ola@puraflora.com.br"

@@ -25,7 +25,7 @@ services:
       DATABASE_URL: postgresql://puraflora:${POSTGRES_PASSWORD:-puraflora}@db:5432/puraflora
       PORT: 3000
     ports:
-      - "8080:3000"
+      - "127.0.0.1:8080:3000"
     volumes:
       - puraflora_uploads:/app/uploads
     depends_on:

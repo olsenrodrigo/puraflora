@@ -4,7 +4,7 @@ import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
 import CartDrawer from "@/components/CartDrawer";
 import CookieConsent from "@/components/CookieConsent";
-import WhatsAppWidget from "@/components/WhatsAppWidget";
+import SupportWidget from "@/components/SupportWidget";
 import SplashIntro from "@/components/SplashIntro";
 import Home from "@/pages/Home";
 import Store from "@/pages/Store";
@@ -85,7 +85,7 @@ export default function App() {
       {!isAdmin && <Footer />}
       {!isAdmin && <CartDrawer />}
       {!isAdmin && <CookieConsent />}
-      {!isAdmin && <WhatsAppWidget />}
+      {!isAdmin && <SupportWidget />}
     </div>
   );
 }

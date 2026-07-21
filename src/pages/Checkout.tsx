@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { Link } from "wouter";
 import { useTranslation } from "react-i18next";
 import {
@@ -180,6 +180,79 @@ export default function Checkout() {
   const set = (k: keyof Form) => (e: React.ChangeEvent<HTMLInputElement>) =>
     setForm((f) => ({ ...f, [k]: e.target.value }));
 
+  // ── CEP → autopreenchimento do endereço (ViaCEP via backend) ──────────────
+  const [cepStatus, setCepStatus] = useState<"idle" | "loading" | "notfound" | "error">("idle");
+  const lastCepRef = useRef("");
+  const cepReqRef = useRef(0); // invalida respostas fora de ordem (última vence)
+  const cepInputRef = useRef<HTMLInputElement>(null);
+  const addressRef = useRef<HTMLInputElement>(null);
+  const numberRef = useRef<HTMLInputElement>(null);
+
+  // Digita o CEP com máscara 00000-000 e limita a 8 dígitos.
+  const onCepChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const digits = e.target.value.replace(/\D/g, "").slice(0, 8);
+    const masked = digits.length > 5 ? `${digits.slice(0, 5)}-${digits.slice(5)}` : digits;
+    setForm((f) => ({ ...f, cep: masked }));
+  };
+
+  const lookupCep = async (cep: string) => {
+    if (cep.length !== 8 || cep === lastCepRef.current) return;
+    lastCepRef.current = cep;
+    const reqId = ++cepReqRef.current;
+    setCepStatus("loading");
+    try {
+      const res = await fetch(`/api/cep/${cep}`);
+      if (reqId !== cepReqRef.current) return; // resposta obsoleta (CEP mudou)
+      if (!res.ok) {
+        // Erro transitório (rede/servidor): libera novo tento do mesmo CEP.
+        if (res.status !== 404) lastCepRef.current = "";
+        setCepStatus(res.status === 404 ? "notfound" : "error");
+        return;
+      }
+      const data = await res.json();
+      if (reqId !== cepReqRef.current) return;
+      // Preenche os campos vindos do CEP; o cliente ainda pode sobrescrever tudo.
+      // Só aplica se o CEP no formulário ainda for o que buscamos.
+      setForm((f) => {
+        if (f.cep.replace(/\D/g, "") !== cep) return f;
+        return {
+          ...f,
+          address: data.address || f.address,
+          district: data.district || f.district,
+          city: data.city || f.city,
+          state: data.state || f.state,
+          complement: data.complement || f.complement,
+        };
+      });
+      setCepStatus("idle");
+      // Foco inteligente: só move se o cliente ainda está no campo CEP. Vai para
+      // o endereço se ele veio vazio (CEP único de cidade), senão para o número.
+      window.setTimeout(() => {
+        if (document.activeElement !== cepInputRef.current) return;
+        if (!data.address) addressRef.current?.focus();
+        else numberRef.current?.focus();
+      }, 60);
+    } catch {
+      if (reqId !== cepReqRef.current) return;
+      lastCepRef.current = ""; // permite reenviar o mesmo CEP após falha de rede
+      setCepStatus("error");
+    }
+  };
+
+  // Dispara a busca automaticamente quando o CEP fica completo (debounce leve).
+  useEffect(() => {
+    const digits = form.cep.replace(/\D/g, "");
+    if (digits.length === 8) {
+      const h = window.setTimeout(() => lookupCep(digits), 350);
+      return () => window.clearTimeout(h);
+    }
+    // CEP incompleto: invalida buscas em voo e reseta para permitir nova busca.
+    cepReqRef.current += 1;
+    lastCepRef.current = "";
+    setCepStatus((s) => (s === "idle" ? s : "idle"));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [form.cep]);
+
   if (sent) {
     return (
       <div className="flex min-h-[75vh] flex-col items-center justify-center gap-5 bg-pf-cream px-4 pt-24 text-center">
@@ -287,7 +360,7 @@ export default function Checkout() {
     customerName: form.name,
     customerEmail: form.email || null,
     customerPhone: form.phone,
-    shippingCep: form.cep,
+    shippingCep: form.cep.replace(/\D/g, ""),
     shippingAddress: form.address,
     shippingNumber: form.number,
     shippingComplement: form.complement || null,
@@ -527,14 +600,31 @@ export default function Checkout() {
                 <Field
                   label={t("checkout.cep")}
                   value={form.cep}
-                  onChange={set("cep")}
+                  onChange={onCepChange}
+                  inputRef={cepInputRef}
+                  inputMode="numeric"
+                  maxLength={9}
                   error={touched && !form.cep.trim() ? t("checkout.required") : ""}
                   className="sm:col-span-2"
+                  hint={
+                    cepStatus === "loading" ? (
+                      <span className="inline-flex items-center gap-1.5">
+                        <Loader2 size={12} className="animate-spin" /> {t("checkout.cepSearching")}
+                      </span>
+                    ) : cepStatus === "notfound" ? (
+                      <span className="text-pf-clay">{t("checkout.cepNotFound")}</span>
+                    ) : cepStatus === "error" ? (
+                      <span className="text-pf-clay">{t("checkout.cepError")}</span>
+                    ) : (
+                      t("checkout.cepHint")
+                    )
+                  }
                 />
                 <Field
                   label={t("checkout.address")}
                   value={form.address}
                   onChange={set("address")}
+                  inputRef={addressRef}
                   error={touched && !form.address.trim() ? t("checkout.required") : ""}
                   className="sm:col-span-4"
                 />
@@ -542,6 +632,7 @@ export default function Checkout() {
                   label={t("checkout.number")}
                   value={form.number}
                   onChange={set("number")}
+                  inputRef={numberRef}
                   error={touched && !form.number.trim() ? t("checkout.required") : ""}
                   className="sm:col-span-2"
                 />
@@ -789,6 +880,10 @@ function Field({
   type = "text",
   error,
   className,
+  inputRef,
+  hint,
+  inputMode,
+  maxLength,
 }: {
   label: string;
   value: string;
@@ -796,6 +891,10 @@ function Field({
   type?: string;
   error?: string;
   className?: string;
+  inputRef?: React.Ref<HTMLInputElement>;
+  hint?: React.ReactNode;
+  inputMode?: React.HTMLAttributes<HTMLInputElement>["inputMode"];
+  maxLength?: number;
 }) {
   return (
     <label className={cn("block", className)}>
@@ -803,14 +902,18 @@ function Field({
         {label}
       </span>
       <input
+        ref={inputRef}
         type={type}
         value={value}
         onChange={onChange}
+        inputMode={inputMode}
+        maxLength={maxLength}
         className={cn(
           "w-full rounded-xl border bg-pf-cream/40 px-3.5 py-2.5 text-sm text-pf-ink outline-none transition-colors focus:border-pf-green-400 focus:bg-white",
           error ? "border-pf-clay" : "border-pf-green-900/12"
         )}
       />
+      {hint && <span className="mt-1 block text-xs text-pf-ink-soft">{hint}</span>}
     </label>
   );
 }

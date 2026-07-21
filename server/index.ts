@@ -3,6 +3,7 @@ import fs from "node:fs";
 import path from "node:path";
 import express from "express";
 import { shippingRouter } from "./routes/shipping";
+import { cepRouter } from "./routes/cep";
 import { productsRouter } from "./routes/products";
 import { cartsRouter } from "./routes/carts";
 import { adminCartsRouter } from "./routes/admin-carts";
@@ -55,6 +56,7 @@ async function main() {
   app.use("/uploads", express.static(path.resolve(process.cwd(), "uploads")));
 
   app.use("/api/shipping", shippingRouter());
+  app.use("/api/cep", cepRouter());
   app.use("/api/store", productsRouter());
   app.use("/api/carts", cartsRouter());
   app.use("/api/admin/carts", adminCartsRouter());

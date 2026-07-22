@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { setAnalyticsConfig, enableAnalytics, type AnalyticsConfig } from "@/lib/analytics";
+import { isChatwootConfigured } from "@/components/ChatwootWidget";
 
 const CONSENT_KEY = "pf_consent"; // "granted" | "denied"
 
@@ -17,7 +18,10 @@ export default function CookieConsent() {
         const ac = (d?.analytics ?? {}) as AnalyticsConfig;
         setAnalyticsConfig(ac);
         const hasAnyPixel = !!(ac.ga4MeasurementId || ac.metaPixelId || ac.tiktokPixelId);
-        if (!hasAnyPixel) return; // nada a medir → sem banner, sem scripts
+        // Chatwoot também é script de terceiro e depende do mesmo consentimento
+        // (ver useAnalyticsReady() no SupportWidget) — sem isso, sem pixel configurado,
+        // o banner nunca aparecia e o chat nunca saía do fallback do WhatsApp.
+        if (!hasAnyPixel && !isChatwootConfigured) return; // nada a medir/exibir → sem banner, sem scripts
 
         const decision = (() => {
           try {

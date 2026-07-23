@@ -9,6 +9,7 @@ import {
   storeSettings,
   paymentTransactions,
   webhookEvents,
+  chatwootWhatsappBridge,
   subscriptions,
   abandonedCheckouts,
   productReviews,
@@ -574,6 +575,28 @@ export async function markWebhookEventProcessed(id: number, error?: string) {
       .set({ processedAt: new Date(), error: null })
       .where(eq(webhookEvents.id, id));
   }
+}
+
+// --- ponte Chatwoot ↔ WhatsApp ---
+
+/** Associa a conversa do Chatwoot à última mensagem encaminhada ao WhatsApp. */
+export async function upsertBridgeMapping(chatwootConversationId: number, waMessageId: string) {
+  await db
+    .insert(chatwootWhatsappBridge)
+    .values({ chatwootConversationId, lastOutboundWaMessageId: waMessageId, updatedAt: new Date() })
+    .onConflictDoUpdate({
+      target: chatwootWhatsappBridge.chatwootConversationId,
+      set: { lastOutboundWaMessageId: waMessageId, updatedAt: new Date() },
+    });
+}
+
+/** Conversa cuja última mensagem encaminhada é a citada na resposta (ou null). */
+export async function findBridgeByWaMessageId(waMessageId: string) {
+  const rows = await db
+    .select()
+    .from(chatwootWhatsappBridge)
+    .where(eq(chatwootWhatsappBridge.lastOutboundWaMessageId, waMessageId));
+  return rows[0] ?? null;
 }
 
 const MAX_WEBHOOK_ATTEMPTS = 8;

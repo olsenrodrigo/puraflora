@@ -228,6 +228,17 @@ export const webhookEvents = pgTable("webhook_events", {
   createdAt: timestamp("created_at").notNull().defaultNow(),
 });
 
+// Ponte Chatwoot ↔ WhatsApp: cada conversa do chat do site é correlacionada à
+// ÚLTIMA mensagem encaminhada ao WhatsApp do suporte (self-chat). A resposta do
+// atendente cita (reply) essa mensagem; o stanzaId citado casa com
+// lastOutboundWaMessageId para descobrir a conversa de destino no Chatwoot.
+export const chatwootWhatsappBridge = pgTable("chatwoot_whatsapp_bridge", {
+  id: serial("id").primaryKey(),
+  chatwootConversationId: integer("chatwoot_conversation_id").notNull().unique(),
+  lastOutboundWaMessageId: text("last_outbound_wa_message_id").notNull(),
+  updatedAt: timestamp("updated_at").notNull().defaultNow(),
+});
+
 // Assinaturas ("assine e economize") — espelho local da assinatura Asaas com
 // snapshot dos itens/endereço para materializar pedidos a cada ciclo pago.
 export const subscriptions = pgTable("subscriptions", {

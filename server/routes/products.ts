@@ -7,6 +7,14 @@ import {
 } from "../storage";
 import type { ProductRow, AnalyticsConfig } from "../../shared/schema";
 
+/** "48691531000102" → "48.691.531/0001-02"; vazio → null; outro formato passa como veio. */
+function formatCnpj(raw: string): string | null {
+  const d = raw.replace(/\D/g, "");
+  if (!d) return null;
+  if (d.length !== 14) return raw.trim();
+  return d.replace(/^(\d{2})(\d{3})(\d{3})(\d{4})(\d{2})$/, "$1.$2.$3/$4-$5");
+}
+
 // Rate limit simples por IP para o POST de reviews (anti-spam).
 const REVIEW_HITS = new Map<string, { count: number; resetAt: number }>();
 setInterval(() => {
@@ -89,6 +97,13 @@ export function productsRouter(): Router {
         requireConsent: ac.requireConsent !== false, // default true
       },
       reviewsEnabled: settings?.reviewsEnabled !== false,
+      // Identificação legal do vendedor (Decreto 7.962/2013) — .env tem prioridade
+      // sobre o que foi salvo no admin.
+      company: {
+        legalName: process.env.COMPANY_LEGAL_NAME || null,
+        cnpj: formatCnpj(process.env.COMPANY_CNPJ || settings?.cnpj || ""),
+        address: process.env.COMPANY_ADDRESS || settings?.address || null,
+      },
     });
   });
 

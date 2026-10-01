@@ -10,6 +10,7 @@ import {
 } from "lucide-react";
 import { brl, cn } from "@/lib/utils";
 import { trackPurchase, type AnalyticsItem } from "@/lib/analytics";
+import { useCompanyInfo } from "@/lib/company";
 
 type Method = "PIX" | "BOLETO" | "CREDIT_CARD";
 
@@ -70,6 +71,7 @@ function CopyButton({ text, label }: { text: string; label: string }) {
 
 export default function PaymentPanel({ orderNumber, total, customer, maxInstallments, methods, cardMode, analyticsItems, couponCode }: Props) {
   const allowed: Method[] = methods && methods.length ? methods : ["PIX", "BOLETO", "CREDIT_CARD"];
+  const company = useCompanyInfo();
   const [method, setMethod] = useState<Method>(allowed[0]);
   const cardRedirect = method === "CREDIT_CARD" && cardMode === "redirect";
   // corrige o método selecionado se a config só carregar depois
@@ -212,6 +214,12 @@ export default function PaymentPanel({ orderNumber, total, customer, maxInstallm
       <p className="mt-1 text-sm text-pf-ink-soft">
         Pedido <b>{orderNumber}</b> · Total <b>{brl(total)}</b>
       </p>
+      {company?.legalName && (
+        <p className="mt-1 text-xs text-pf-ink-soft/80">
+          Cobrança emitida por <b>{company.legalName}</b>
+          {company.cnpj && <> · CNPJ {company.cnpj}</>}
+        </p>
+      )}
 
       {!result ? (
         <>

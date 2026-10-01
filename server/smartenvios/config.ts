@@ -74,7 +74,7 @@ export function loadConfig(
     mock,
     sender: {
       name: env.SENDER_NAME || "PuraFlora",
-      document: env.SENDER_DOCUMENT || "",
+      document: env.SENDER_DOCUMENT || env.COMPANY_CNPJ || "",
       zipcode: (env.SENDER_ZIPCODE || "").replace(/\D/g, ""),
       street: env.SENDER_STREET || "",
       number: env.SENDER_NUMBER || "",

@@ -34,7 +34,10 @@ const BASE_URLS: Record<AsaasEnv, string> = {
 
 export function loadConfig(env: NodeJS.ProcessEnv): AsaasConfig {
   const apiKey = (env.ASAAS_API_KEY || "").trim();
-  const asaasEnv: AsaasEnv = env.ASAAS_ENV === "production" ? "production" : "sandbox";
+  // ASAAS_ENV vazio → deduz pelo prefixo da chave ($aact_prod_ = produção).
+  const asaasEnv: AsaasEnv = env.ASAAS_ENV
+    ? env.ASAAS_ENV === "production" ? "production" : "sandbox"
+    : apiKey.startsWith("$aact_prod_") ? "production" : "sandbox";
   const mock = env.ASAAS_MOCK === "1" || !apiKey;
 
   return {

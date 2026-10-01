@@ -5,12 +5,14 @@ import Logo from "@/components/brand/Logo";
 import { WhatsAppIcon } from "@/components/icons/Social";
 import { WHATSAPP_NUMBER, WHATSAPP_DISPLAY } from "@/data/catalog";
 import { scrollToId } from "@/lib/utils";
+import { useCompanyInfo } from "@/lib/company";
 
 const WHATSAPP_LINK = `https://wa.me/${WHATSAPP_NUMBER}`;
 
 export default function Footer() {
   const { t } = useTranslation();
   const [location, setLocation] = useLocation();
+  const company = useCompanyInfo();
 
   const section = (id: string) => {
     if (location === "/") scrollToId(id);
@@ -104,7 +106,7 @@ export default function Footer() {
             >
               ola@puraflora.com.br
             </a>
-            <span className="text-sm text-pf-cream/50">São Paulo · Brasil</span>
+            <span className="text-sm text-pf-cream/50">Ribeirão Preto · SP</span>
           </FooterCol>
         </div>
 
@@ -112,6 +114,17 @@ export default function Footer() {
           <p className="text-[11px] leading-relaxed text-pf-cream/45">
             {t("footer.disclaimer")}
           </p>
+          {(company?.legalName || company?.cnpj) && (
+            <p className="mt-3 text-[11px] leading-relaxed text-pf-cream/45">
+              {[
+                company.legalName,
+                company.cnpj && `CNPJ ${company.cnpj}`,
+                company.address,
+              ]
+                .filter(Boolean)
+                .join(" · ")}
+            </p>
+          )}
           <div className="mt-4 flex flex-col items-start justify-between gap-2 text-xs text-pf-cream/50 sm:flex-row sm:items-center">
             <span>
               © {new Date().getFullYear()} PuraFlora. {t("footer.rights")}
